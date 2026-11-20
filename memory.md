@@ -21,11 +21,10 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Phase 4: LightGBM and validation
 - [x] Phase 5: Optimizer
 - [x] Phase 6: Streamlit app
-- [ ] Phase 7: Ship
+- [x] Phase 7: Ship
 
 ## Currently working on
-- Phase: 6 completed. Ready for Phase 7 (Ship).
-- File: README.md (Phase 7)
+- All phases completed successfully. Project is fully verified, documented, and deployment-ready.
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% interval coverage |
@@ -35,14 +34,8 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 | LightGBM | 0.1471 | 89.93% |
 
 ## Open issues / notes
-- Phase 6 completed:
-  - `app/streamlit_app.py`: Implemented single-page Streamlit application per `design.md`.
-  - Sidebar inputs: JEE Main CRL rank, optional JEE Advanced rank, Category & Category rank, Gender, Home State, Priority mode (College-first vs Branch-first), Preferred branches, Institute types, and Choice list size slider (10-100).
-  - Main area displays:
-    - 3 metric cards with exact design theme colors: Dream (Red #DC2626), Target (Amber #D97706), and Safe (Green #16A34A).
-    - Results table with `st.column_config.ProgressColumn` for Admit Chance, risk tier pills, and 80% prediction intervals.
-    - Warning alert banner for choices placed after near-certain options (P >= 95%).
-    - Interactive 5-year closing rank trajectory Plotly line chart with student rank baseline and 2026 projected error ranges.
-    - One-click CSV choice-list download button.
-    - Mandatory disclaimer and "Built by Sahil Sharma" footer.
-  - Successfully verified in browser at `http://localhost:8501`.
+- Phase 7 completed:
+  - `README.md`: Comprehensive documentation covering Problem, 5-year JoSAA data, Methodology (normal CDF probabilities, 20/50/30 mix, preference scoring, unreachable warnings), Results comparison table, Limitations, Local setup guide, and Streamlit Community Cloud deployment instructions.
+  - Data artifacts (`data/processed/cutoffs.parquet`, `data/processed/institutes.csv`) and model (`models/lgbm.joblib`) committed in git repository.
+  - Test suite (12 unit tests across `tests/test_probability.py` and `tests/test_optimizer.py`) passing with 100% success rate.
+  - App verified running locally on `http://localhost:8501`.

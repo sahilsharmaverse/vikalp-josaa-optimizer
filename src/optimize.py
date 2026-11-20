@@ -231,6 +231,7 @@ def build_list(
 
     # 6. Format final presentation columns
     final_list["choice_no"] = range(1, len(final_list) + 1)
+    final_list["student_rank"] = final_list["effective_student_rank"]
     output_cols = [
         "choice_no",
         "institute",
@@ -241,6 +242,7 @@ def build_list(
         "quota",
         "seat_type",
         "gender",
+        "student_rank",
         "probability",
         "label",
         "predicted_closing_rank",

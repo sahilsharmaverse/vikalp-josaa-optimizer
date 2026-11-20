@@ -156,8 +156,6 @@ with st.sidebar:
 
     main_rank_input = st.number_input(
         "JEE Main CRL Rank (NIT/IIIT/GFTI)",
-        min_value=0,
-        max_value=1500000,
         value=15000,
         step=100,
         help="Common Rank List (CRL) rank in JEE Main.",
@@ -165,8 +163,6 @@ with st.sidebar:
 
     adv_rank_input = st.number_input(
         "JEE Advanced Rank (IITs - Optional)",
-        min_value=0,
-        max_value=250000,
         value=0,
         step=50,
         help="Leave 0 if not qualified or not applying to IITs.",
@@ -183,8 +179,6 @@ with st.sidebar:
     if category != "OPEN":
         category_rank_input = st.number_input(
             f"{category} Category Rank",
-            min_value=0,
-            max_value=500000,
             value=3500,
             step=50,
             help=f"Your category-specific rank for {category} seats.",
@@ -247,8 +241,11 @@ st.markdown(
 )
 
 # Validate ranks
-if main_rank_input <= 0 and adv_rank_input <= 0:
-    st.error("Please enter a valid rank (a positive whole number) in the sidebar to begin.")
+if (
+    (main_rank_input is None or main_rank_input <= 0)
+    and (adv_rank_input is None or adv_rank_input <= 0)
+) or (main_rank_input is not None and main_rank_input < 0) or (adv_rank_input is not None and adv_rank_input < 0) or (category_rank_input is not None and category_rank_input < 0):
+    st.error("Please enter a valid rank (a positive whole number).")
     st.stop()
 
 # Build student profile

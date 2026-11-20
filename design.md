@@ -1,64 +1,103 @@
-# design.md: UI design for the Streamlit app
+# design.md: UI design for the Streamlit app (v1.1 Bold Edition)
 
 Project: Vikalp | Author: Sahil Sharma
 
-## Style
-Clean, trustworthy, calm. Students are stressed, so the screen should feel clear and not flashy. Light theme, one accent colour, three status colours.
+## Style: Bold, Modern & High-Confidence
+High-energy, modern, dark-theme aesthetic designed to inspire confidence and clarity during high-stakes JoSAA counselling decisions. Students and parents experience a premium analytics dashboard vibe with rich glassmorphism, animated metrics, and intuitive visual hierarchies.
 
-## Colour and theme
-| Role | Hex |
-|---|---|
-| Primary text / headings | `#1F2A44` (deep navy) |
-| Accent (buttons, highlights) | `#F59E0B` (saffron) |
-| Background | `#FFFFFF` |
-| Secondary background (cards, sidebar) | `#F4F6FA` |
-| Safe | `#16A34A` (green) |
-| Target | `#D97706` (amber) |
-| Dream | `#DC2626` (red) |
-| Muted text | `#6B7280` |
+## Colour & Dark Glass Theme
+| Role | Hex / Value | Description |
+|---|---|---|
+| Deep Dark Background | `#0B0F19` | Pitch canvas foundation |
+| Secondary Background (Sidebar / Wells) | `#111827` | Deep slate container backdrop |
+| Glass Card Background | `rgba(255, 255, 255, 0.04)` | Translucent frosted glass |
+| Glass Card Border | `rgba(255, 255, 255, 0.08)` | Crisp subtle separation border |
+| Primary Text | `#F9FAFB` | High-contrast crisp white |
+| Secondary / Muted Text | `#9CA3AF` | Clean muted cool grey |
+| Navy-to-Saffron Gradient | `linear-gradient(135deg, #0F172A 0%, #1E293B 40%, #B45309 85%, #F59E0B 100%)` | Bold hero header canvas |
+| Primary Accent / Interactive | `#0EA5E9` (Electric Cyan) | Crisp interactive accent (buttons, active sliders, links) — distinct from Target amber |
+| Safe Tier | `#22C55E` (Emerald Green) | High-probability anchor options ($P \ge 80\%$) |
+| Target Tier | `#F59E0B` (Vibrant Amber) | Core competitive zone ($30\% \le P < 80\%$) |
+| Dream Tier | `#EF4444` (Vivid Crimson) | Aspirational reach options ($P < 30\%$) |
+| Trend: Getting harder | `#EF4444` (Red) | Cutoffs tightening / competition rising |
+| Trend: Getting easier | `#22C55E` (Green) | Cutoffs relaxing / admission chance expanding |
+| Trend: Volatile | `#9CA3AF` (Grey) | Historical closing ranks fluctuate across cycles |
 
 `.streamlit/config.toml`:
 ```toml
 [theme]
-primaryColor = "#F59E0B"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F4F6FA"
-textColor = "#1F2A44"
+primaryColor = "#0EA5E9"
+backgroundColor = "#0B0F19"
+secondaryBackgroundColor = "#111827"
+textColor = "#F9FAFB"
 font = "sans serif"
 ```
 
-## Fonts and typography
-- Font: **Inter** (400 / 600 / 700), loaded with a CSS `@import` from Google Fonts, fallback sans-serif
-- Page title: 32 px, bold
-- Section headings: 20 px, semi-bold
-- Body and table text: 15-16 px
-- Captions and disclaimer: 13 px, muted colour
-- Always use numbers with thousands separators (e.g. 12,345), ranks right-aligned in tables
+## Fonts & Typography
+- Font: **Inter** (400 / 500 / 600 / 700 / 800) loaded via Google Fonts with system fallbacks.
+- Hero Headline: 34-38 px, extra-bold.
+- Section Headings: 20-22 px, bold.
+- Card Titles: 16-18 px, semi-bold.
+- Metrics / Counters: 26-32 px, tabular bold numbers.
+- Badges & Footers: 12-13 px, crisp uppercase tracking with label text displayed next to the color.
 
-## Layout
-1. **Sidebar (inputs):** rank(s), category, category rank, gender, home state, preferred branches, institute types, list size, priority mode, **Generate list** button
-2. **Main area:**
-   - Short summary row: count of Dream / Target / Safe options (three coloured metric cards)
-   - Results table: `#`, Institute, Program, Quota, Probability (progress bar), Label (coloured pill), Predicted closing rank range
-   - Expander per row or a selected-row panel with the closing-rank history chart
-   - **Download CSV** button
-3. **Footer:** disclaimer and a short "How this works" expander
+## Components & Visual Elements
+1. **Hero Section:**
+   - Wide container with navy-to-saffron gradient (`linear-gradient(135deg, #0F172A 0%, #1E293B 40%, #B45309 85%, #F59E0B 100%)`).
+   - Headline: **"Your rank. Your seats. Your smartest list."**
+   - Subtitle: *"Data-driven JoSAA choice optimization powered by 5 years of cutoffs and uncertainty modeling."*
+   - Highlights the cumulative chance of admission metric prominently.
 
-## UX copy
-- Title: "Vikalp"
-- Subtitle: "Counselling Choice-List Optimizer. Estimate your admission chances and build a smarter JoSAA choice list."
-- Footer credit: "Built by Sahil Sharma"
-- Disclaimer (always visible under the results): "These are statistical estimates based on past JoSAA data, not official predictions or guarantees. Always verify at josaa.nic.in."
-- Empty state: "No options match your filters. Try adding more branches or institute types."
-- Error state: "Please enter a valid rank (a positive whole number)."
+2. **Cumulative Chance of Getting at Least One Seat:**
+   - Prominent hero metric card reporting the share of Monte Carlo simulations (2,000 runs, $\rho = 0.5$) resulting in $\ge 1$ admission.
+   - Display capped at 99%.
+   - Clearly labeled as an **estimate** with a plain-words explanation:
+     *"Monte Carlo estimate (2,000 simulations) assuming correlated exam/counselling cutoff shocks ($\rho = 0.5$)."*
 
-## Components
-- `st.sidebar`, `st.number_input`, `st.selectbox`, `st.multiselect`, `st.slider`, `st.button`
-- `st.dataframe` with `column_config.ProgressColumn` for probability
-- `st.download_button` for CSV
-- Plotly line chart for closing-rank history with a shaded predicted range
-- Keep it to one page; no multi-page navigation today
+3. **Animated Count-Up Numbers:**
+   - Key metrics (cumulative probability, Dream/Target/Safe counts, total choices) rendered with smooth CSS or lightweight HTML transitions.
 
-## Accessibility
-- Never rely on colour alone: the label text (Dream / Target / Safe) always appears next to the colour
-- Contrast: dark navy text on white or light grey backgrounds
+4. **Option Cards & Circular Probability Gauge:**
+   - Glassmorphism option cards (`backdrop-filter: blur(12px)`).
+   - SVG circular progress gauge displaying exact admission probability percentage with colored arc matching the tier.
+   - Tier tags: `Dream` (Crimson `#EF4444`), `Target` (Amber `#F59E0B`), `Safe` (Emerald `#22C55E`).
+   - Predicted 80% prediction interval pill with thousands separators (read dynamically using model metrics $\sigma$).
+
+5. **Three-Lane Staircase View:**
+   - Visual strategic lane showing:
+     - **Lane 1: Dream** (Aspirational reach, $P < 30\%$, top 20%)
+     - **Lane 2: Target** (Sweet spot, $30\% \le P < 80\%$, core 50%)
+     - **Lane 3: Safe** (Safety nets, $P \ge 80\%$, anchor 30%)
+   - Shows candidate how choices cascade down the JoSAA preference engine.
+
+6. **What-If Interactive Rank Sensitivity Slider:**
+   - Interactive slider in an Electric Cyan styled toolbar to test rank shifts ($\pm 20\%$) with instant tier re-scoring.
+
+7. **"Why This Probability?" Diagnostic Panel:**
+   - Interactive deep-dive modal or drawer with 5-year cutoff Plotly chart.
+   - **Trend Badges (with label text next to the colour):**
+     - 🔴 **Getting harder** (Cutoffs tightening / rank dropping)
+     - 🟢 **Getting easier** (Cutoffs easing / rank increasing)
+     - ⚪ **Volatile** (Fluctuating across years)
+   - Step-by-step probability explanation highlighting student rank relative to median cutoff $\hat{y}$ and 80% prediction interval $[\hat{y} - 1.28155\sigma, \hat{y} + 1.28155\sigma]$ with $\sigma$ read directly from saved metrics.
+
+8. **Side-by-Side Comparison Deck:**
+   - Clean 2-column or 3-column glass cards comparing selected programs side by side with radial gauges, 5-year trend history, quota badges, and institutional rating.
+
+9. **Export Suite:**
+   - **Download CSV** button.
+   - **Download PDF Report** button: generates formatted printable PDF choice list.
+
+10. **Mobile-First Responsive Layout:**
+   - Single-column reflow for 390 px mobile devices (iPhone/Pixel width) with stacked glass cards, fluid padding (`12px - 16px`), touch-accessible buttons ($\ge 44\text{ px}$ height), and scalable SVG gauges.
+   - Expands seamlessly to desktop width.
+
+## UX Copy & Mandatory Branding
+- Headline: "Your rank. Your seats. Your smartest list."
+- Title: "Vikalp · JoSAA Choice-List Optimizer"
+- Disclaimer (persistent below results):
+  *"These are statistical estimates based on past JoSAA data, not official predictions or guarantees. Always verify at josaa.nic.in."*
+- Footer Credit (persistent at bottom):
+  *"Built by Sahil Sharma"*
+- Empty State: "No options match your filters. Try adding more branches or institute types."
+- Error State: "Please enter a valid rank (a positive whole number)."

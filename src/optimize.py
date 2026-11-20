@@ -243,6 +243,7 @@ def build_list(
         "seat_type",
         "gender",
         "student_rank",
+        "y_hat",
         "probability",
         "label",
         "predicted_closing_rank",

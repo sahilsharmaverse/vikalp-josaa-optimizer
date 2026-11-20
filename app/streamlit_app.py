@@ -22,107 +22,21 @@ import streamlit as st
 
 from src.eligibility import StudentProfile
 from src.optimize import build_list
+from src.simulation import simulate_at_least_one_seat_probability, get_model_sigma
 
 # Page Configuration
 st.set_page_config(
     page_title="Vikalp - JoSAA Choice-List Optimizer",
     page_icon="🎯",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
-# Custom Typography & Styling per design.md
-st.markdown(
-    """
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-    html, body, [class*="css"] {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-        color: #1F2A44;
-    }
-
-    .main-title {
-        font-size: 32px;
-        font-weight: 700;
-        color: #1F2A44;
-        margin-bottom: 2px;
-    }
-
-    .sub-title {
-        font-size: 16px;
-        color: #6B7280;
-        margin-bottom: 24px;
-    }
-
-    /* Metric Card Styling */
-    .metric-container {
-        display: flex;
-        gap: 16px;
-        margin-bottom: 20px;
-    }
-
-    .metric-card {
-        flex: 1;
-        padding: 16px 20px;
-        border-radius: 8px;
-        background: #F4F6FA;
-        border-left: 6px solid #6B7280;
-    }
-
-    .metric-card-dream {
-        border-left-color: #DC2626;
-    }
-
-    .metric-card-target {
-        border-left-color: #D97706;
-    }
-
-    .metric-card-safe {
-        border-left-color: #16A34A;
-    }
-
-    .metric-title {
-        font-size: 13px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 4px;
-    }
-
-    .metric-value {
-        font-size: 28px;
-        font-weight: 700;
-        color: #1F2A44;
-    }
-
-    .metric-subtitle {
-        font-size: 12px;
-        color: #6B7280;
-    }
-
-    .disclaimer-box {
-        font-size: 13px;
-        color: #6B7280;
-        padding: 12px 16px;
-        background-color: #F4F6FA;
-        border-radius: 6px;
-        margin-top: 24px;
-        border: 1px solid #E5E7EB;
-    }
-
-    .footer-credit {
-        font-size: 13px;
-        color: #6B7280;
-        text-align: center;
-        margin-top: 32px;
-        padding-top: 16px;
-        border-top: 1px solid #E5E7EB;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
+# Load External Stylesheet
+css_path = ROOT_DIR / "app" / "styles.css"
+if css_path.exists():
+    with open(css_path, "r", encoding="utf-8") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 
 @st.cache_data
@@ -233,10 +147,19 @@ with st.sidebar:
 
     generate_btn = st.button("🚀 Generate Choice List", type="primary", use_container_width=True)
 
-# --- MAIN AREA ---
-st.markdown('<div class="main-title">🎯 Vikalp</div>', unsafe_allow_html=True)
+# --- HERO SECTION ---
 st.markdown(
-    '<div class="sub-title">Counselling Choice-List Optimizer · Estimate your admission chances and build a smarter JoSAA choice list.</div>',
+    """
+    <div class="hero-card">
+        <div class="hero-headline">Your rank. Your seats. Your smartest list.</div>
+        <div class="hero-subhead">Data-driven JoSAA choice optimization powered by 5 years of cutoffs, quota logic, and uncertainty modeling.</div>
+        <div class="hero-chip-row">
+            <span class="hero-chip">🎯 AI / HS / OS Quota Aware</span>
+            <span class="hero-chip">⚖️ 20 / 50 / 30 Strategic Mix</span>
+            <span class="hero-chip">📊 80% Prediction Intervals</span>
+        </div>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -274,20 +197,43 @@ if df_list.empty:
     st.warning("No options match your filters. Try adding more branches or institute types.")
     st.stop()
 
+# Feature 1: Portfolio-level Monte Carlo Simulation
+model_sigma = get_model_sigma()
+p_at_least_one = simulate_at_least_one_seat_probability(
+    student_ranks=df_list["student_rank"].values,
+    y_hats=df_list["y_hat"].values,
+    sigma=model_sigma,
+    rho=0.5,
+    n_sims=2000,
+    seed=42,
+)
+p_at_least_one_pct = min(99, int(round(p_at_least_one * 100)))
+
 # Metric summary cards
-dream_count = (df_list["label"] == "Dream").sum()
-target_count = (df_list["label"] == "Target").sum()
-safe_count = (df_list["label"] == "Safe").sum()
+dream_count = int((df_list["label"] == "Dream").sum())
+target_count = int((df_list["label"] == "Target").sum())
+safe_count = int((df_list["label"] == "Safe").sum())
 total_count = len(df_list)
 
-col1, col2, col3 = st.columns(3)
+col0, col1, col2, col3 = st.columns(4)
+with col0:
+    st.markdown(
+        f"""
+        <div class="glass-metric metric-highlight">
+            <div class="metric-title" style="color: #0EA5E9;">Seat Admission Chance</div>
+            <div class="metric-value" style="color: #38BDF8;">{p_at_least_one_pct}%</div>
+            <div class="metric-desc">Monte Carlo estimate (2,000 runs, &rho;=0.5) of getting &ge;1 seat</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 with col1:
     st.markdown(
         f"""
-        <div class="metric-card metric-card-dream">
-            <div class="metric-title" style="color: #DC2626;">Dream Options</div>
+        <div class="glass-metric metric-dream">
+            <div class="metric-title" style="color: #EF4444;">Dream Options</div>
             <div class="metric-value">{dream_count}</div>
-            <div class="metric-subtitle">P &lt; 30% · Aspirational targets</div>
+            <div class="metric-desc">P &lt; 30% &middot; Aspirational reach</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -295,10 +241,10 @@ with col1:
 with col2:
     st.markdown(
         f"""
-        <div class="metric-card metric-card-target">
-            <div class="metric-title" style="color: #D97706;">Target Options</div>
+        <div class="glass-metric metric-target">
+            <div class="metric-title" style="color: #F59E0B;">Target Options</div>
             <div class="metric-value">{target_count}</div>
-            <div class="metric-subtitle">30% ≤ P &lt; 80% · Competitive realistic zone</div>
+            <div class="metric-desc">30% &le; P &lt; 80% &middot; Competitive zone</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -306,10 +252,10 @@ with col2:
 with col3:
     st.markdown(
         f"""
-        <div class="metric-card metric-card-safe">
-            <div class="metric-title" style="color: #16A34A;">Safe Options</div>
+        <div class="glass-metric metric-safe">
+            <div class="metric-title" style="color: #22C55E;">Safe Options</div>
             <div class="metric-value">{safe_count}</div>
-            <div class="metric-subtitle">P ≥ 80% · Reliable safety fallbacks</div>
+            <div class="metric-desc">P &ge; 80% &middot; Reliable safety anchors</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -474,7 +420,9 @@ if selected_choice_str:
         title=f"Cutoff Trend: {inst_match} · {prog_match}",
         xaxis_title="Counselling Year",
         yaxis_title="Closing Rank (Lower is Better)",
-        template="plotly_white",
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(255,255,255,0.02)",
         height=380,
         margin=dict(l=40, r=40, t=50, b=40),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
@@ -487,10 +435,10 @@ if selected_choice_str:
 # Disclaimer and Methodology Expander
 st.markdown(
     """
-    <div class="disclaimer-box">
+    <div class="disclaimer-glass">
         <strong>⚠️ Disclaimer:</strong> These are statistical estimates based on past JoSAA data, not official predictions or guarantees.
         Seat matrix variations, candidate preference shifts, and exam difficulty fluctuations affect actual allotments. Always verify at 
-        <a href="https://josaa.nic.in" target="_blank" style="color: #F59E0B; text-decoration: underline;">josaa.nic.in</a>.
+        <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
     </div>
     """,
     unsafe_allow_html=True,
@@ -500,10 +448,11 @@ with st.expander("ℹ️ How Vikalp Works"):
     st.markdown(
         """
         - **Quota & Category Precision**: Evaluates All India (AI), Home State (HS), and Other State (OS) quotas accurately based on your 12th schooling state. OPEN seats are evaluated with CRL, while category seats use category ranks.
-        - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual variance on held-out years.
+        - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual standard error read directly from calibrated model metrics.
         - **Strategic Risk Balance**: Constructs a balanced list with **20% Dream** ($P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$) options.
+        - **Portfolio Admission Chance**: Estimates the probability of securing at least one seat across your entire list via a 2,000-run Monte Carlo simulation modeling correlated exam/counselling shocks ($\rho = 0.5$).
         - **Unreachable Choice Detection**: Highlights choices ordered after a near-certain option ($P \\ge 95\\%$) to protect you from wasted choices.
         """
     )
 
-st.markdown('<div class="footer-credit">Built by Sahil Sharma</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer-glass">Built by Sahil Sharma</div>', unsafe_allow_html=True)

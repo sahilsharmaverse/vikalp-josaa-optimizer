@@ -18,25 +18,27 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Phase 1: Data collection
 - [x] Phase 2: Clean and features
 - [x] Phase 3: Baseline and probability
-- [ ] Phase 4: LightGBM and validation
+- [x] Phase 4: LightGBM and validation
 - [ ] Phase 5: Optimizer
 - [ ] Phase 6: Streamlit app
 - [ ] Phase 7: Ship
 
 ## Currently working on
-- Phase: 3 completed. Ready for Phase 4 (LightGBM and validation).
-- File: src/train.py (Phase 4)
+- Phase: 4 completed. Ready for Phase 5 (Optimizer).
+- File: src/eligibility.py, src/optimize.py (Phase 5)
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% interval coverage |
 |---|---|---|
 | Baseline (last year) | 0.1485 | 90.07% |
 | Weighted trend | 0.1393 | 90.06% |
-| LightGBM | | |
+| LightGBM | 0.1471 | 89.93% |
 
 ## Open issues / notes
-- Phase 3 completed:
-  - `src/baseline.py`: Weighted trend predictor (weights 0.5, 0.3, 0.2 for last 3 years; normalized for 2 years).
-  - Evaluated on held-out year 2025: MAE = 0.1393 log points (beats naive last-year baseline 0.1485), residual sigma = 0.2285, 80% prediction interval coverage = 90.06%.
-  - `src/predict.py`: Admission probability function `admit_probability(student_rank, y_hat, sigma) = 1 - Phi((ln(rank) - y_hat) / sigma)`, clipped to [0.01, 0.99], with risk tier labeling (`Dream` < 0.30, `Target` 0.30-0.80, `Safe` >= 0.80).
-  - `tests/test_probability.py`: 8 unit tests covering rank equal to prediction, monotonicity, clipping bounds, invalid input errors, vectorized array inputs, and interval bounds. All 8 tests passing.
+- Phase 4 completed:
+  - `src/train.py`: Trained LightGBM regressor (`n_estimators=400, learning_rate=0.05, num_leaves=31, random_state=42`) on log closing ranks with historical lag and categorical features.
+  - Time-based validation on held-out year 2025:
+    - LightGBM achieves MAE = 0.1471 and 80% interval coverage = 89.93%, beating the naive last-year baseline (MAE = 0.1485).
+    - The weighted-trend baseline achieves MAE = 0.1393 and 80% coverage = 90.06%, outperforming LightGBM.
+    - As explicitly instructed in `rules.md` and `phases.md` ("If LightGBM does not beat the baseline by the hard stop, keep the baseline and say so honestly in the README"), we will not tune further and will retain the weighted-trend predictor.
+  - Trained model artifact saved to `models/lgbm.joblib`.

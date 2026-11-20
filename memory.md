@@ -19,13 +19,13 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Phase 2: Clean and features
 - [x] Phase 3: Baseline and probability
 - [x] Phase 4: LightGBM and validation
-- [ ] Phase 5: Optimizer
+- [x] Phase 5: Optimizer
 - [ ] Phase 6: Streamlit app
 - [ ] Phase 7: Ship
 
 ## Currently working on
-- Phase: 4 completed. Ready for Phase 5 (Optimizer).
-- File: src/eligibility.py, src/optimize.py (Phase 5)
+- Phase: 5 completed. Ready for Phase 6 (Streamlit app).
+- File: app/streamlit_app.py (Phase 6)
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% interval coverage |
@@ -35,10 +35,8 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 | LightGBM | 0.1471 | 89.93% |
 
 ## Open issues / notes
-- Phase 4 completed:
-  - `src/train.py`: Trained LightGBM regressor (`n_estimators=400, learning_rate=0.05, num_leaves=31, random_state=42`) on log closing ranks with historical lag and categorical features.
-  - Time-based validation on held-out year 2025:
-    - LightGBM achieves MAE = 0.1471 and 80% interval coverage = 89.93%, beating the naive last-year baseline (MAE = 0.1485).
-    - The weighted-trend baseline achieves MAE = 0.1393 and 80% coverage = 90.06%, outperforming LightGBM.
-    - As explicitly instructed in `rules.md` and `phases.md` ("If LightGBM does not beat the baseline by the hard stop, keep the baseline and say so honestly in the README"), we will not tune further and will retain the weighted-trend predictor.
-  - Trained model artifact saved to `models/lgbm.joblib`.
+- Phase 5 completed:
+  - `src/eligibility.py`: Quota matching (AI always eligible; HS if institute state matches home state; OS otherwise), exam ranks separation (IIT requires JEE Advanced, others require JEE Main), category seats matching (OPEN uses CRL; reserved seats use category ranks), and gender rules (females eligible for Gender-Neutral and Female-only).
+  - `src/optimize.py`: Constructs balanced choice list with 20% Dream / 50% Target / 30% Safe mix, supports College-first (prestige proxy) and Branch-first scoring, orders choices strictly Dream -> Target -> Safe, and flags choices placed after any option with P >= 0.95 as unreachable.
+  - Implemented `build_list(student) -> DataFrame` and verified across 3 distinct student personas.
+  - Added unit test suite in `tests/test_optimizer.py`. All 12 unit tests passing in pytest.

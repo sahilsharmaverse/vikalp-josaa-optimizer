@@ -20,12 +20,12 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Phase 3: Baseline and probability
 - [x] Phase 4: LightGBM and validation
 - [x] Phase 5: Optimizer
-- [ ] Phase 6: Streamlit app
+- [x] Phase 6: Streamlit app
 - [ ] Phase 7: Ship
 
 ## Currently working on
-- Phase: 5 completed. Ready for Phase 6 (Streamlit app).
-- File: app/streamlit_app.py (Phase 6)
+- Phase: 6 completed. Ready for Phase 7 (Ship).
+- File: README.md (Phase 7)
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% interval coverage |
@@ -35,8 +35,14 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 | LightGBM | 0.1471 | 89.93% |
 
 ## Open issues / notes
-- Phase 5 completed:
-  - `src/eligibility.py`: Quota matching (AI always eligible; HS if institute state matches home state; OS otherwise), exam ranks separation (IIT requires JEE Advanced, others require JEE Main), category seats matching (OPEN uses CRL; reserved seats use category ranks), and gender rules (females eligible for Gender-Neutral and Female-only).
-  - `src/optimize.py`: Constructs balanced choice list with 20% Dream / 50% Target / 30% Safe mix, supports College-first (prestige proxy) and Branch-first scoring, orders choices strictly Dream -> Target -> Safe, and flags choices placed after any option with P >= 0.95 as unreachable.
-  - Implemented `build_list(student) -> DataFrame` and verified across 3 distinct student personas.
-  - Added unit test suite in `tests/test_optimizer.py`. All 12 unit tests passing in pytest.
+- Phase 6 completed:
+  - `app/streamlit_app.py`: Implemented single-page Streamlit application per `design.md`.
+  - Sidebar inputs: JEE Main CRL rank, optional JEE Advanced rank, Category & Category rank, Gender, Home State, Priority mode (College-first vs Branch-first), Preferred branches, Institute types, and Choice list size slider (10-100).
+  - Main area displays:
+    - 3 metric cards with exact design theme colors: Dream (Red #DC2626), Target (Amber #D97706), and Safe (Green #16A34A).
+    - Results table with `st.column_config.ProgressColumn` for Admit Chance, risk tier pills, and 80% prediction intervals.
+    - Warning alert banner for choices placed after near-certain options (P >= 95%).
+    - Interactive 5-year closing rank trajectory Plotly line chart with student rank baseline and 2026 projected error ranges.
+    - One-click CSV choice-list download button.
+    - Mandatory disclaimer and "Built by Sahil Sharma" footer.
+  - Successfully verified in browser at `http://localhost:8501`.

@@ -17,28 +17,26 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Phase 0: Setup
 - [x] Phase 1: Data collection
 - [x] Phase 2: Clean and features
-- [ ] Phase 3: Baseline and probability
+- [x] Phase 3: Baseline and probability
 - [ ] Phase 4: LightGBM and validation
 - [ ] Phase 5: Optimizer
 - [ ] Phase 6: Streamlit app
 - [ ] Phase 7: Ship
 
 ## Currently working on
-- Phase: 2 completed. Ready for Phase 3 (Baseline and probability).
-- File: src/baseline.py, src/predict.py (Phase 3)
+- Phase: 3 completed. Ready for Phase 4 (LightGBM and validation).
+- File: src/train.py (Phase 4)
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% interval coverage |
 |---|---|---|
-| Baseline (last year) | | |
-| Weighted trend | | |
+| Baseline (last year) | 0.1485 | 90.07% |
+| Weighted trend | 0.1393 | 90.06% |
 | LightGBM | | |
 
 ## Open issues / notes
-- Phase 1 & 2 completed:
-  - 5 consecutive years of final-round cutoffs scraped into `data/raw/` (2021-2025), totaling 52,505 raw rows.
-  - `src/clean.py` implemented: drops PwD and preparatory ranks ('P' suffix), filters to AI/HS/OS quotas, standardizes institute and program names, maps institute types (IIT, NIT, IIIT, GFTI) and states.
-  - `data/processed/institutes.csv` created containing 129 normalized institutes.
-  - `src/features.py` implemented: assigns branch groups (`CSE`, `ECE`, `EE`, `MECH`, `CIVIL`, `CHEM`, `META`, `ARCH`, `BIO`, `OTHER`) and computes time-lag features (`prev_closing_1`, `prev_closing_2`, `prev_closing_3`, `mean_last_2`, `delta_1yr`, `trend_slope`, `years_of_history`, `log_closing_rank`).
-  - Saved `data/processed/cutoffs.parquet` (45,947 rows).
-  - All 10 sanity checks passed cleanly (including IIT Bombay & Delhi CSE ranks, NIT Trichy & Surathkal CSE, opening <= closing monotonicity, Quota/Seat type validity, and lag alignment).
+- Phase 3 completed:
+  - `src/baseline.py`: Weighted trend predictor (weights 0.5, 0.3, 0.2 for last 3 years; normalized for 2 years).
+  - Evaluated on held-out year 2025: MAE = 0.1393 log points (beats naive last-year baseline 0.1485), residual sigma = 0.2285, 80% prediction interval coverage = 90.06%.
+  - `src/predict.py`: Admission probability function `admit_probability(student_rank, y_hat, sigma) = 1 - Phi((ln(rank) - y_hat) / sigma)`, clipped to [0.01, 0.99], with risk tier labeling (`Dream` < 0.30, `Target` 0.30-0.80, `Safe` >= 0.80).
+  - `tests/test_probability.py`: 8 unit tests covering rank equal to prediction, monotonicity, clipping bounds, invalid input errors, vectorized array inputs, and interval bounds. All 8 tests passing.

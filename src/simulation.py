@@ -19,17 +19,30 @@ from typing import Optional, Union
 import numpy as np
 
 
-def get_model_sigma(default: float = 0.2285) -> float:
-    """Read calibrated residual standard error from saved model metrics."""
+def get_model_metrics() -> dict:
+    """Read model metrics and metadata from saved json."""
     metrics_path = Path(__file__).resolve().parent.parent / "models" / "metrics.json"
+    default_metrics = {
+        "val_year": 2025,
+        "mae": 0.1393,
+        "sigma": 0.2285,
+        "coverage_80": 0.9006,
+        "model_name": "Weighted Trend Predictor (weights 0.5, 0.3, 0.2)",
+    }
     if metrics_path.exists():
         try:
             with open(metrics_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return float(data.get("sigma", default))
+                default_metrics.update(data)
+                return default_metrics
         except Exception:
-            return default
-    return default
+            return default_metrics
+    return default_metrics
+
+
+def get_model_sigma(default: float = 0.2285) -> float:
+    """Read calibrated residual standard error from saved model metrics."""
+    return float(get_model_metrics().get("sigma", default))
 
 
 def simulate_at_least_one_seat_probability(

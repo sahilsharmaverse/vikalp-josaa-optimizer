@@ -2,5 +2,6 @@
   "val_year": 2025,
   "mae": 0.1393,
   "sigma": 0.2285,
-  "coverage_80": 0.9006
+  "coverage_80": 0.9006,
+  "model_name": "Weighted Trend Predictor (weights 0.5, 0.3, 0.2)"
 }

@@ -13,6 +13,7 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - Stack: Python, pandas, LightGBM, Streamlit. No Docker or FastAPI today.
 - v1.1 Style: Bold dark theme with glass cards, navy-to-saffron gradient hero, and Electric Cyan (`#0EA5E9`) interactive accent.
 - v1.1 Portfolio Admit Metric: 2,000-run Monte Carlo simulation with correlated shocks ($\rho = 0.5$) read using calibrated model error $\sigma$.
+- v1.1 What-If Slider: Real-time rank sensitivity (-20% to +20%, 5% steps) with in-place rescoring and "Rebuild list at this rank" option.
 
 ## Completed
 - [x] PRD.md, Architecture.md, rules.md, phases.md, design.md written
@@ -29,13 +30,13 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 ## v1.1 Expansion Progress
 - [x] Step A: Update docs (`vikalp/PRD.md` & `vikalp/design.md`) with user feedback (Monte Carlo $\rho=0.5$, trend badge names, prediction intervals, cyan accent, dark theme, ReportLab)
 - [x] Feature 1: Chance of getting at least one seat (Monte Carlo engine `src/simulation.py`, 5 passing unit tests in `tests/test_simulation.py`, UI glass cards, 390px mobile & desktop screenshots verified)
-- [ ] Feature 2: What-if slider
+- [x] Feature 2: What-if slider (Rescore engine `src/whatif.py`, 5 passing unit tests in `tests/test_whatif.py`, sub-second `@st.cache_data` updates, 6 screenshots at -20%, 0%, +20% for desktop & 390px mobile)
 - [ ] Feature 3: Why-this-probability panel (5-year trend badges)
 - [ ] Feature 4: Compare 2-3 options side by side
 - [ ] Feature 5: PDF export
 
 ## Currently working on
-- Feature 1 completed and verified. Awaiting user OK to proceed to Feature 2 (What-if rank slider).
+- Feature 2 completed and verified across all requested viewports and sensitivity bounds. Awaiting user OK to proceed to Feature 3 (Why-this-probability panel).
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% prediction interval coverage |
@@ -44,7 +45,8 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 | Weighted trend | 0.1393 | 90.06% |
 | LightGBM | 0.1471 | 89.93% |
 
-## QA & v1.1 Feature 1 Verification
-- **Monte Carlo Simulation:** Implemented in `src/simulation.py`. In `tests/test_simulation.py`, verified that at $\rho=0$, the MC estimate matches $1 - \prod (1 - P_i)$ within 0.02.
+## QA & v1.1 Feature Verification
+- **Feature 1 (Monte Carlo Simulation):** Implemented in `src/simulation.py`. In `tests/test_simulation.py`, verified that at $\rho=0$, the MC estimate matches $1 - \prod (1 - P_i)$ within 0.02.
+- **Feature 2 (What-If Rank Slider):** Implemented in `src/whatif.py` with `@st.cache_data`. Tests in `tests/test_whatif.py` verify rank 1 clamp, monotonic probability changes, zero-shift identity, and strict row order preservation without reordering.
 - **UI & Layout:** Bold dark glass aesthetic configured with `.streamlit/config.toml` (`#0EA5E9` accent, `#0B0F19` background) and `app/styles.css`.
-- **Responsive Display:** Screenshots captured at 1280px (desktop) and 390px (mobile iPhone viewport). Zero crashes; test suite has 22 passing tests.
+- **Test Suite Status:** 27/27 tests passing.

@@ -23,6 +23,7 @@ import streamlit as st
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.simulation import simulate_at_least_one_seat_probability, get_model_sigma
+from src.whatif import shift_rank, shift_student_profile, rescore_choice_list
 
 # Page Configuration
 st.set_page_config(
@@ -37,6 +38,35 @@ css_path = ROOT_DIR / "app" / "styles.css"
 if css_path.exists():
     with open(css_path, "r", encoding="utf-8") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+
+@st.cache_data
+def get_optimized_choice_list(
+    main_rank: Optional[int],
+    adv_rank: Optional[int],
+    category: str,
+    category_rank: Optional[int],
+    gender: str,
+    home_state: str,
+    preferred_branches: Optional[Tuple[str, ...]],
+    institute_types: Optional[Tuple[str, ...]],
+    list_size: int,
+    priority_mode: str,
+) -> pd.DataFrame:
+    """Cached generator for baseline choice list to ensure sub-second What-If updates."""
+    student_obj = StudentProfile(
+        main_rank=main_rank,
+        adv_rank=adv_rank,
+        category=category,
+        category_rank=category_rank,
+        gender=gender,
+        home_state=home_state,
+        preferred_branches=list(preferred_branches) if preferred_branches else None,
+        institute_types=list(institute_types) if institute_types else None,
+        list_size=list_size,
+        priority_mode=priority_mode,
+    )
+    return build_list(student_obj)
 
 
 @st.cache_data
@@ -185,10 +215,31 @@ student = StudentProfile(
     priority_mode=priority_mode,
 )
 
-# Generate choice list
+# Check if a rebuild rank shift was requested in session state
+if "rebuild_shift_pct" not in st.session_state:
+    st.session_state["rebuild_shift_pct"] = 0
+
+active_student = student
+if st.session_state["rebuild_shift_pct"] != 0:
+    active_student = shift_student_profile(student, float(st.session_state["rebuild_shift_pct"]))
+
+# Generate choice list (cached for instant What-If slider responsiveness)
 try:
     with st.spinner("Analyzing cutoffs and optimizing choice list..."):
-        df_list = build_list(student)
+        pref_branches_tuple = tuple(active_student.preferred_branches) if active_student.preferred_branches else None
+        inst_types_tuple = tuple(active_student.institute_types) if active_student.institute_types else None
+        df_list = get_optimized_choice_list(
+            main_rank=active_student.main_rank,
+            adv_rank=active_student.adv_rank,
+            category=active_student.category,
+            category_rank=active_student.category_rank,
+            gender=active_student.gender,
+            home_state=active_student.home_state,
+            preferred_branches=pref_branches_tuple,
+            institute_types=inst_types_tuple,
+            list_size=active_student.list_size,
+            priority_mode=active_student.priority_mode,
+        )
 except Exception as e:
     st.error(f"Error generating choice list: {e}")
     st.stop()
@@ -197,9 +248,9 @@ if df_list.empty:
     st.warning("No options match your filters. Try adding more branches or institute types.")
     st.stop()
 
-# Feature 1: Portfolio-level Monte Carlo Simulation
+# Feature 1 Baseline Simulation
 model_sigma = get_model_sigma()
-p_at_least_one = simulate_at_least_one_seat_probability(
+base_p_at_least_one = simulate_at_least_one_seat_probability(
     student_ranks=df_list["student_rank"].values,
     y_hats=df_list["y_hat"].values,
     sigma=model_sigma,
@@ -207,54 +258,159 @@ p_at_least_one = simulate_at_least_one_seat_probability(
     n_sims=2000,
     seed=42,
 )
-p_at_least_one_pct = min(99, int(round(p_at_least_one * 100)))
+base_p_pct = min(99, int(round(base_p_at_least_one * 100)))
 
-# Metric summary cards
-dream_count = int((df_list["label"] == "Dream").sum())
-target_count = int((df_list["label"] == "Target").sum())
-safe_count = int((df_list["label"] == "Safe").sum())
-total_count = len(df_list)
+base_dream_count = int((df_list["label"] == "Dream").sum())
+base_target_count = int((df_list["label"] == "Target").sum())
+base_safe_count = int((df_list["label"] == "Safe").sum())
 
+# --- FEATURE 2: WHAT-IF RANK SENSITIVITY TOOLBAR ---
+st.markdown(
+    """
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; margin-bottom: 4px;">
+        <span style="font-size: 15px; font-weight: 700; color: #38BDF8;">🎚️ What-If Rank Sensitivity Analysis</span>
+        <span style="font-size: 13px; color: #94A3B8;">Simulate cutoff & tier shifts (±20%)</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+wi_col1, wi_col2 = st.columns([3, 1])
+
+default_slider_val = 0
+if "shift" in st.query_params:
+    try:
+        parsed_shift = int(st.query_params["shift"])
+        if parsed_shift in [-20, -15, -10, -5, 0, 5, 10, 15, 20]:
+            default_slider_val = parsed_shift
+    except Exception:
+        default_slider_val = 0
+
+with wi_col1:
+    rank_shift_pct = st.slider(
+        "Rank Shift Percentage",
+        min_value=-20,
+        max_value=20,
+        value=default_slider_val,
+        step=5,
+        format="%+d%%",
+        help="Simulate how cutoffs and admission chances shift if your rank were higher (worse) or lower (better). +10% means 10% higher rank number.",
+        label_visibility="collapsed",
+    )
+
+with wi_col2:
+    rebuild_btn = st.button("🔄 Rebuild list at this rank", use_container_width=True)
+
+if rebuild_btn:
+    st.session_state["rebuild_shift_pct"] = int(rank_shift_pct)
+    st.rerun()
+
+if st.session_state["rebuild_shift_pct"] != 0:
+    st.info(
+        f"⚡ Choice list is currently rebuilt at **{st.session_state['rebuild_shift_pct']:+d}%** rank shift. "
+        "Move slider to explore or adjust sidebar to reset."
+    )
+
+# Compute shifted rank numbers for display
+shifted_main = shift_rank(active_student.main_rank, float(rank_shift_pct)) if active_student.main_rank else None
+shifted_adv = shift_rank(active_student.adv_rank, float(rank_shift_pct)) if active_student.adv_rank else None
+shifted_cat = shift_rank(active_student.category_rank, float(rank_shift_pct)) if active_student.category_rank else None
+
+rank_badge_parts = []
+if shifted_main:
+    diff_text = f" ({rank_shift_pct:+d}%)" if rank_shift_pct != 0 else ""
+    orig_text = f" from {active_student.main_rank:,}" if rank_shift_pct != 0 else ""
+    rank_badge_parts.append(f"JEE Main CRL: <span class='rank-badge'>{shifted_main:,}</span>{orig_text}{diff_text}")
+if shifted_adv:
+    diff_text = f" ({rank_shift_pct:+d}%)" if rank_shift_pct != 0 else ""
+    orig_text = f" from {active_student.adv_rank:,}" if rank_shift_pct != 0 else ""
+    rank_badge_parts.append(f"JEE Adv CRL: <span class='rank-badge'>{shifted_adv:,}</span>{orig_text}{diff_text}")
+if shifted_cat:
+    diff_text = f" ({rank_shift_pct:+d}%)" if rank_shift_pct != 0 else ""
+    orig_text = f" from {active_student.category_rank:,}" if rank_shift_pct != 0 else ""
+    rank_badge_parts.append(f"{active_student.category} Rank: <span class='rank-badge'>{shifted_cat:,}</span>{orig_text}{diff_text}")
+
+badges_html = " &nbsp;|&nbsp; ".join(rank_badge_parts)
+st.markdown(
+    f"""
+    <div style="background: rgba(14, 165, 233, 0.05); border: 1px solid rgba(14, 165, 233, 0.2); border-radius: 10px; padding: 10px 14px; margin-top: 4px; margin-bottom: 20px; font-size: 13px; color: #94A3B8;">
+        Simulated Rank: {badges_html}
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Re-score CURRENT list with shifted rank (in-place, strictly preserving choice ordering)
+rescored_df, shifted_p_at_least_one = rescore_choice_list(
+    df_list,
+    pct=float(rank_shift_pct),
+    sigma=model_sigma,
+    rho=0.5,
+    n_sims=2000,
+    seed=42,
+)
+shifted_p_pct = min(99, int(round(shifted_p_at_least_one * 100)))
+
+# New tier counts
+new_dream_count = int((rescored_df["shifted_label"] == "Dream").sum())
+new_target_count = int((rescored_df["shifted_label"] == "Target").sum())
+new_safe_count = int((rescored_df["shifted_label"] == "Safe").sum())
+
+# Metric summary cards (showing old vs new when shifted)
 col0, col1, col2, col3 = st.columns(4)
 with col0:
+    if rank_shift_pct == 0:
+        val_display = f"{base_p_pct}%"
+        sub_desc = "Monte Carlo estimate (2,000 runs, &rho;=0.5) of getting &ge;1 seat"
+    else:
+        diff_p = shifted_p_pct - base_p_pct
+        val_display = f"{base_p_pct}% → {shifted_p_pct}%"
+        sub_desc = f"Simulated shift ({diff_p:+d}%) with rank shifted by {rank_shift_pct:+d}%"
+
     st.markdown(
         f"""
         <div class="glass-metric metric-highlight">
             <div class="metric-title" style="color: #0EA5E9;">Seat Admission Chance</div>
-            <div class="metric-value" style="color: #38BDF8;">{p_at_least_one_pct}%</div>
-            <div class="metric-desc">Monte Carlo estimate (2,000 runs, &rho;=0.5) of getting &ge;1 seat</div>
+            <div class="metric-value" style="color: #38BDF8; font-size: {'24px' if rank_shift_pct != 0 else '32px'};">{val_display}</div>
+            <div class="metric-desc">{sub_desc}</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
 with col1:
+    dream_display = f"{base_dream_count}" if rank_shift_pct == 0 else f"{base_dream_count} → {new_dream_count}"
     st.markdown(
         f"""
         <div class="glass-metric metric-dream">
             <div class="metric-title" style="color: #EF4444;">Dream Options</div>
-            <div class="metric-value">{dream_count}</div>
+            <div class="metric-value" style="font-size: {'24px' if rank_shift_pct != 0 else '32px'};">{dream_display}</div>
             <div class="metric-desc">P &lt; 30% &middot; Aspirational reach</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
 with col2:
+    target_display = f"{base_target_count}" if rank_shift_pct == 0 else f"{base_target_count} → {new_target_count}"
     st.markdown(
         f"""
         <div class="glass-metric metric-target">
             <div class="metric-title" style="color: #F59E0B;">Target Options</div>
-            <div class="metric-value">{target_count}</div>
+            <div class="metric-value" style="font-size: {'24px' if rank_shift_pct != 0 else '32px'};">{target_display}</div>
             <div class="metric-desc">30% &le; P &lt; 80% &middot; Competitive zone</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
+
 with col3:
+    safe_display = f"{base_safe_count}" if rank_shift_pct == 0 else f"{base_safe_count} → {new_safe_count}"
     st.markdown(
         f"""
         <div class="glass-metric metric-safe">
             <div class="metric-title" style="color: #22C55E;">Safe Options</div>
-            <div class="metric-value">{safe_count}</div>
+            <div class="metric-value" style="font-size: {'24px' if rank_shift_pct != 0 else '32px'};">{safe_display}</div>
             <div class="metric-desc">P &ge; 80% &middot; Reliable safety anchors</div>
         </div>
         """,
@@ -264,23 +420,32 @@ with col3:
 st.markdown("<br>", unsafe_allow_html=True)
 
 # Table display preparation
-display_df = df_list.copy()
+display_df = rescored_df.copy()
+
+# Tier change impact callout if any options changed tier
+changed_count = int((rescored_df["tier_change"] != "").sum())
+if rank_shift_pct != 0 and changed_count > 0:
+    st.info(
+        f"⚡ **What-If Impact ({rank_shift_pct:+d}% shift):** **{changed_count} options** changed tier! "
+        f"(Dream: {base_dream_count} → {new_dream_count} | Target: {base_target_count} → {new_target_count} | Safe: {base_safe_count} → {new_safe_count}). "
+        "Check the 'Shift Marker' column in the table below to see which options moved."
+    )
 
 # Table header and action bar
 tbl_col1, tbl_col2 = st.columns([3, 1])
 with tbl_col1:
     st.markdown("### 📑 Optimized JoSAA Choice List")
 with tbl_col2:
-    csv_data = df_list.to_csv(index=False).encode("utf-8")
+    csv_data = display_df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="📥 Download Choice List (CSV)",
         data=csv_data,
-        file_name=f"vikalp_choice_list_{student.category}_{student.main_rank or student.adv_rank}.csv",
+        file_name=f"vikalp_choice_list_{active_student.category}_{active_student.main_rank or active_student.adv_rank}.csv",
         mime="text/csv",
         use_container_width=True,
     )
 
-# Render interactive DataFrame
+# Render interactive DataFrame with shifted probability, tier, and tier change markers
 st.dataframe(
     display_df[[
         "choice_no",
@@ -288,27 +453,29 @@ st.dataframe(
         "program",
         "quota",
         "seat_type",
-        "probability",
-        "label",
+        "shifted_probability",
+        "shifted_label",
+        "tier_change",
         "predicted_range",
         "warning",
     ]],
     column_config={
         "choice_no": st.column_config.NumberColumn("#", format="%d", width="small"),
-        "institute": st.column_config.TextColumn("Institute", width="large"),
-        "program": st.column_config.TextColumn("Academic Program", width="large"),
+        "institute": st.column_config.TextColumn("Institute", width="medium"),
+        "program": st.column_config.TextColumn("Academic Program", width="medium"),
         "quota": st.column_config.TextColumn("Quota", width="small"),
-        "seat_type": st.column_config.TextColumn("Seat Type", width="small"),
-        "probability": st.column_config.ProgressColumn(
+        "seat_type": st.column_config.TextColumn("Seat", width="small"),
+        "shifted_probability": st.column_config.ProgressColumn(
             "Admit Chance",
             format="%.0f%%",
             min_value=0.0,
             max_value=1.0,
-            width="medium",
+            width="small",
         ),
-        "label": st.column_config.TextColumn("Tier", width="small"),
-        "predicted_range": st.column_config.TextColumn("Est. Closing Range (80%)", width="medium"),
-        "warning": st.column_config.TextColumn("Notes / Warnings", width="large"),
+        "shifted_label": st.column_config.TextColumn("Tier", width="small"),
+        "tier_change": st.column_config.TextColumn("Shift Marker", width="medium"),
+        "predicted_range": st.column_config.TextColumn("Est. Range (80%)", width="small"),
+        "warning": st.column_config.TextColumn("Notes / Warnings", width="small"),
     },
     hide_index=True,
     use_container_width=True,
@@ -402,17 +569,15 @@ if selected_choice_str:
             )
         )
 
-    # Student rank horizontal reference line
-    student_rank_val = student.adv_rank if selected_row["institute_type"] == "IIT" else student.main_rank
-    if selected_row["seat_type"] != "OPEN" and student.category_rank:
-        student_rank_val = student.category_rank
-
+    # Student rank horizontal reference line (reflects What-If shift if active)
+    student_rank_val = selected_row["shifted_rank"]
     if student_rank_val:
+        annot_text = f"Your Rank ({student_rank_val:,})" if rank_shift_pct == 0 else f"Shifted Rank ({student_rank_val:,}, {rank_shift_pct:+d}%)"
         fig.add_hline(
             y=student_rank_val,
             line_dash="dash",
-            line_color="#16A34A",
-            annotation_text=f"Your Rank ({student_rank_val:,})",
+            line_color="#0EA5E9" if rank_shift_pct != 0 else "#16A34A",
+            annotation_text=annot_text,
             annotation_position="bottom right",
         )
 

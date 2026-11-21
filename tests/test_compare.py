@@ -10,6 +10,7 @@ from src.compare import (
     check_order_unreachable,
     create_comparison_chart,
     generate_quick_facts,
+    parse_compare_query_params,
     render_svg_circular_gauge,
     render_svg_sparkline,
     validate_selection_count,
@@ -198,3 +199,39 @@ def test_quick_facts_rule_based():
     assert any("getting harder" in f.lower() for f in facts)
     # Contains mandatory note
     assert any("Branch, placement, location and fees also matter" in f for f in facts)
+
+
+def test_parse_compare_query_params():
+    """Query parameter ?compare=X,Y must safely ignore invalid or out-of-range values without crashing."""
+    available = list(range(1, 51))  # Choices 1 through 50
+
+    # Normal valid input
+    assert parse_compare_query_params("4,21", available) == [4, 21]
+    assert parse_compare_query_params("1, 2, 3", available) == [1, 2, 3]
+
+    # Out of range values ignored
+    assert parse_compare_query_params("0, 4, 9999, -15, 21", available) == [4, 21]
+
+    # Non-numeric and malformed tokens ignored
+    assert parse_compare_query_params("abc, 4, null, NaN, 21, ???", available) == [4, 21]
+
+    # Empty, whitespace, None
+    assert parse_compare_query_params("", available) == []
+    assert parse_compare_query_params("   ", available) == []
+    assert parse_compare_query_params(None, available) == []
+
+    # Duplicates removed while preserving order
+    assert parse_compare_query_params("4, 4, 21, 4", available) == [4, 21]
+
+    # Caps at max_count (default 3)
+    assert parse_compare_query_params("1, 2, 3, 4, 5", available, max_count=3) == [1, 2, 3]
+
+    # List or tuple input
+    assert parse_compare_query_params(["4", "invalid", "21"], available) == [4, 21]
+
+    # Empty available list
+    assert parse_compare_query_params("4,21", []) == []
+
+    # Extremely malformed objects do not crash
+    assert parse_compare_query_params({"bad": "dict"}, available) == []
+

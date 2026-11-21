@@ -26,12 +26,14 @@ from src.compare import (
     check_order_unreachable,
     create_comparison_chart,
     generate_quick_facts,
+    parse_compare_query_params,
     render_svg_circular_gauge,
     render_svg_sparkline,
     validate_selection_count,
 )
 from src.eligibility import StudentProfile
 from src.optimize import build_list
+from src.pdf_report import build_pdf_report
 from src.simulation import (
     get_model_metrics,
     get_model_sigma,
@@ -849,16 +851,32 @@ if rank_shift_pct != 0 and changed_count > 0:
     )
 
 # Table header and action bar
-tbl_col1, tbl_col2 = st.columns([3, 1])
+tbl_col1, tbl_col2, tbl_col3 = st.columns([2, 1, 1])
 with tbl_col1:
     st.markdown("### 📑 Optimized JoSAA Choice List")
 with tbl_col2:
     csv_data = display_df.to_csv(index=False).encode("utf-8")
     st.download_button(
-        label="📥 Download Choice List (CSV)",
+        label="📥 Download CSV",
         data=csv_data,
-        file_name=f"vikalp_choice_list_{active_student.category}_{active_student.main_rank or active_student.adv_rank}.csv",
+        file_name=f"vikalp_choice_list_{active_student.category}_{current_student_rank}.csv",
         mime="text/csv",
+        use_container_width=True,
+    )
+with tbl_col3:
+    pdf_bytes = build_pdf_report(
+        choice_df=display_df,
+        student_profile=student,
+        seat_chance=new_p_at_least_one,
+        rank_shift_pct=rank_shift_pct,
+        active_rank=current_student_rank,
+        history_df=history_df,
+    )
+    st.download_button(
+        label="📄 Download PDF Report",
+        data=pdf_bytes,
+        file_name=f"vikalp_choice_report_{active_student.category}_{current_student_rank}.pdf",
+        mime="application/pdf",
         use_container_width=True,
     )
 
@@ -1148,21 +1166,18 @@ compare_choice_labels = [
 # Configure initial default compare selection
 default_compare_labels = []
 if "compare" in st.query_params:
-    try:
-        c_nos = [
-            int(x.strip())
-            for x in st.query_params["compare"].split(",")
-            if x.strip().isdigit()
-        ]
-        for cno in c_nos:
-            matched = display_df[display_df["choice_no"] == cno]
-            if not matched.empty:
-                r = matched.iloc[0]
-                default_compare_labels.append(
-                    f"#{r['choice_no']} {r['institute']}, {r['program']}, {r['quota']}"
-                )
-    except Exception:
-        default_compare_labels = []
+    valid_c_nos = parse_compare_query_params(
+        st.query_params.get("compare"),
+        display_df["choice_no"].tolist(),
+        max_count=3,
+    )
+    for cno in valid_c_nos:
+        matched = display_df[display_df["choice_no"] == cno]
+        if not matched.empty:
+            r = matched.iloc[0]
+            default_compare_labels.append(
+                f"#{r['choice_no']} {r['institute']}, {r['program']}, {r['quota']}"
+            )
 
 if not default_compare_labels and len(compare_choice_labels) >= 2:
     # Default to choices #4 and #21 if available, else first 2

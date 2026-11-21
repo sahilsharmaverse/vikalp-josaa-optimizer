@@ -35,10 +35,11 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Quick Fixes (a) & (b): Seat admission chance with one decimal and 99.9% cap with fixed seed 42; comparison metrics count format (e.g. "10 to 25, +15").
 - [x] Feature 3: Why-this-probability panel with 5-year trend badge (`src/trend.py`, `tests/test_trend.py`, `@st.dialog` + inline panel in `app/streamlit_app.py`, 6 screenshots captured across Getting harder / Getting easier / Volatile for desktop and 390px mobile).
 - [x] Feature 4: Compare 2-3 options side by side (`src/compare.py`, `tests/test_compare.py`, side-by-side deck, Plotly multi-series chart, aligned comparison table, JoSAA unreachable order warning, deterministic quick facts, 6 screenshots verified)
-- [ ] Feature 5: PDF export
+- [x] Quick Fixes (a) & (b): Set `pythonpath = .` in `pytest.ini` and `tests/conftest.py` so `pytest tests/` runs cleanly without `python -m`; safe query parameter parsing in `src/compare.py` (`parse_compare_query_params`) to ignore invalid/out-of-range tokens without crashing.
+- [x] Feature 5: PDF export of the choice list (`src/pdf_report.py`, `tests/test_pdf.py`, in-memory `BytesIO` generation via ReportLab, print-friendly styling, repeated headers, `NumberedCanvas` "Page x of y", unreachable dagger footnote, methodology & disclaimer last page, Page 1 and Last Page rendered to PNG).
 
 ## Currently working on
-- Feature 4 completed and verified across all requested viewports and conditions (2 options, 3 options, unreachable warning). Awaiting user OK to proceed to Feature 5 (PDF export).
+- Feature 5 completed, verified across 1, 50, and 100 choices, and rendered to PNG. Awaiting user OK.
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% prediction interval coverage |
@@ -50,7 +51,7 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 ## QA & v1.1 Feature Verification
 - **Feature 1 (Monte Carlo Simulation):** Implemented in `src/simulation.py`. In `tests/test_simulation.py`, verified that at $\rho=0$, the MC estimate matches $1 - \prod (1 - P_i)$ within 0.02.
 - **Feature 2 (What-If Rank Slider):** Implemented in `src/whatif.py` with `@st.cache_data`. Tests in `tests/test_whatif.py` verify rank 1 clamp, monotonic probability changes, zero-shift identity, and strict row order preservation without reordering.
-- **Quick Fixes (a) & (b):** Seat Admission Chance formatted to 1 decimal place with 99.9% display cap and fixed simulation seed (`seed=42`). Tier count comparisons formatted as `"X to Y, +Z"`.
+- **Quick Fixes (a) & (b) [What-if & Trend]:** Seat Admission Chance formatted to 1 decimal place with 99.9% display cap and fixed simulation seed (`seed=42`). Tier count comparisons formatted as `"X to Y, +Z"`.
 - **Feature 3 ("Why this probability?" Panel & Trend Badge):**
   - Core logic implemented in `src/trend.py` with named constants: `MIN_HISTORY_YEARS = 3`, `VOLATILE_STD_THRESHOLD = 0.20`, `EASIER_MEAN_THRESHOLD = 0.05`, `HARDER_MEAN_THRESHOLD = -0.05`.
   - Trend badges: "Getting harder" (red), "Getting easier" (green), "Volatile" (grey), "Stable" (grey), "Not enough history" (grey) with label text next to color pill.
@@ -68,5 +69,19 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
   - Aligned comparison table with identical row labels across all compared options.
   - JoSAA allocation order check: alerts user if an option sits after an earlier choice with admission probability $\ge 95\%$, marking unreachable options with clear warning badges.
   - Deterministic rule-based quick facts generator concluding with mandatory advisory: *"This compares admission chances only. Branch, placement, location and fees also matter."*
-  - 5 unit tests in `tests/test_compare.py` verify selection bounds, probability numerical consistency across What-If shifts, sparse history handling, unreachable order detection, and quick-facts formatting.
-- **Test Suite Status:** 39/39 tests passing.
+  - 6 unit tests in `tests/test_compare.py` verify selection bounds, probability numerical consistency across What-If shifts, sparse history handling, unreachable order detection, quick-facts formatting, and safe query parameter parsing.
+- **Quick Fixes (a) & (b) [Pytest & Compare URL Params]:**
+  - Pytest runs cleanly from project root (`pytest tests/`) via `pythonpath = .` in `pytest.ini` and `tests/conftest.py`.
+  - Added `parse_compare_query_params` to `src/compare.py` and unit test `test_parse_compare_query_params` in `tests/test_compare.py` validating that malformed, negative, float, out-of-range, and duplicate tokens are safely ignored.
+- **Feature 5 (PDF Choice List Report):**
+  - Core logic in `src/pdf_report.py`: `build_pdf_report`, `NumberedCanvas`, `safe_escape`.
+  - Pure in-memory generation via ReportLab (`io.BytesIO`) without persisting student data to disk.
+  - Print-friendly layout: clean white background, dark `#0F172A` text, light color fills on tier cells (`#FEE2E2` Dream, `#FEF3C7` Target, `#DCFCE7` Safe) with explicit tier labels.
+  - Page 1: Title, author attribution "Built by Sahil Sharma", IST generation timestamp, complete entered student profile, active rank callout (e.g. `"Rank used: 16,500 (simulated +10%)"` or `"Rank used: 15,000"`), Seat Admission Chance (1 decimal with plain-words shared-shock assumption), and Dream/Target/Safe count distribution.
+  - Choice Table: Multi-page support up to 100 choices with `repeatRows=1` header repetition, XML escaping via `xml.sax.saxutils.escape`, calibrated 80% prediction intervals, 5-year trend badges, and two-pass `NumberedCanvas` generating "Page X of Y" and running footer on all pages.
+  - Dagger (`†`) unreachable alert: Automatically detects choices ordered below an option with admission probability $\ge 95\%$ and adds an explanatory footnote.
+  - Last Page: How to read Dream / Target / Safe risk tiers, 3-line plain-words probability calculation breakdown, model provenance & typical error metrics read from `models/metrics.json` (MAE = 0.1393, 80% coverage = 90.06%), JoSAA sequential allocation rule explanation, full legal disclaimer, and pinned "Always verify at josaa.nic.in" verification banner.
+  - UI integration: Added "Download PDF Report" button right next to the CSV download button in `app/streamlit_app.py`.
+  - Dev dependencies: Isolated `pypdf` and `pymupdf` in `requirements-dev.txt`.
+  - 4 unit tests in `tests/test_pdf.py` verifying `%PDF` header, non-empty generation (<3 seconds) across 1, 50, and 100 choices, special characters escaping (`&`, `<`, quotes, long dash), extracted text validation (disclaimer, author, dagger footnote), and active what-if rank callouts.
+- **Test Suite Status:** 44/44 tests passing.

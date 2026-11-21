@@ -53,6 +53,66 @@ OPTION_STYLES = [
 ]
 
 
+def parse_compare_query_params(
+    param_val: Any,
+    available_choice_nos: Sequence[int],
+    max_count: int = 3,
+) -> List[int]:
+    """Safely parse ?compare=X,Y query parameter ignoring invalid or out-of-range values.
+
+    Parameters
+    ----------
+    param_val : Any
+        Query parameter value (e.g. '4,21', '1,invalid,999', ['2', '5']), or None.
+    available_choice_nos : Sequence[int]
+        Collection of valid choice numbers currently in the choice list.
+    max_count : int, default 3
+        Maximum number of valid choices to return.
+
+    Returns
+    -------
+    List[int]
+        List of valid, in-range choice numbers without duplicates, up to max_count.
+    """
+    if param_val is None:
+        return []
+
+    valid_set = set(
+        int(c)
+        for c in available_choice_nos
+        if isinstance(c, (int, float, np.integer)) and not math.isnan(c)
+    )
+
+    if isinstance(param_val, (list, tuple)):
+        raw_items = []
+        for elem in param_val:
+            raw_items.extend(str(elem).split(","))
+    else:
+        raw_items = str(param_val).split(",")
+
+    parsed: List[int] = []
+    seen: set = set()
+    for item in raw_items:
+        clean_item = str(item).strip()
+        if not clean_item:
+            continue
+        try:
+            val = (
+                int(float(clean_item))
+                if ("." in clean_item or clean_item.lstrip("-").isdigit())
+                else int(clean_item)
+            )
+            if val in valid_set and val not in seen:
+                parsed.append(val)
+                seen.add(val)
+                if len(parsed) >= max_count:
+                    break
+        except (ValueError, TypeError, OverflowError):
+            continue
+
+    return parsed
+
+
 def validate_selection_count(count: int) -> Tuple[bool, str]:
     """Validate that exactly 2 or 3 options are selected.
 

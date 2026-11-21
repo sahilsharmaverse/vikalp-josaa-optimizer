@@ -21,6 +21,15 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.compare import (
+    OPTION_STYLES,
+    check_order_unreachable,
+    create_comparison_chart,
+    generate_quick_facts,
+    render_svg_circular_gauge,
+    render_svg_sparkline,
+    validate_selection_count,
+)
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.simulation import (
@@ -1041,6 +1050,275 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+def build_aligned_comparison_table_html(
+    selected_df: pd.DataFrame,
+    trends: List[Dict[str, Any]],
+    order_warnings: List[Dict[str, Any]],
+    model_sigma: float,
+) -> str:
+    """Build an aligned HTML comparison table with identical row labels."""
+    blocked_dict = {w["blocked_choice"]: w for w in order_warnings}
+    n_opts = len(selected_df)
+
+    header_th = ['<th style="width: 22%;">Metric / Attribute</th>']
+    for idx, (_, r) in enumerate(selected_df.iterrows()):
+        cno = int(r["choice_no"])
+        style = OPTION_STYLES[idx % len(OPTION_STYLES)]
+        header_th.append(
+            f'<th style="width: {78 // n_opts}%; border-top: 3px solid {style["color"]};">'
+            f'#{cno}: {r["institute"][:24]}..'
+            f'</th>'
+        )
+
+    rows = []
+
+    def make_row(label: str, values: List[str]) -> str:
+        cols_html = "".join(f"<td>{v}</td>" for v in values)
+        return f"<tr><td style='font-weight: 700; color: #94A3B8;'>{label}</td>{cols_html}</tr>"
+
+    rows.append(make_row("List Position", [f"<strong style='color:#38BDF8;'>Choice #{int(r['choice_no'])}</strong>" for _, r in selected_df.iterrows()]))
+    rows.append(make_row("Academic Program", [f"<strong>{r['program']}</strong>" for _, r in selected_df.iterrows()]))
+    rows.append(make_row("Institute", [f"{r['institute']} ({r['institute_type']})" for _, r in selected_df.iterrows()]))
+    rows.append(make_row("Quota / Seat / Pool", [f"{r['quota']} &middot; {r['seat_type']} ({r['gender']})" for _, r in selected_df.iterrows()]))
+    rows.append(make_row("Admit Probability", [f"<span style='font-size: 15px; font-weight: 800; color: #FFFFFF;'>{float(r['shifted_probability']):.1%}</span>" for _, r in selected_df.iterrows()]))
+
+    tier_pills = []
+    for _, r in selected_df.iterrows():
+        t = r["shifted_label"]
+        color = "#EF4444" if t == "Dream" else "#F59E0B" if t == "Target" else "#22C55E"
+        tier_pills.append(f"<span style='background:{color}22; border:1px solid {color}66; color:{color}; padding:2px 8px; border-radius:9999px; font-size:11px; font-weight:700;'>{t}</span>")
+    rows.append(make_row("Decision Tier", tier_pills))
+
+    rows.append(make_row("Predicted Cutoff", [f"<strong>{int(round(np.exp(r['y_hat']))):,}</strong>" for _, r in selected_df.iterrows()]))
+
+    range_vals = []
+    for _, r in selected_df.iterrows():
+        low_80 = int(round(np.exp(r["y_hat"] - 1.28 * model_sigma)))
+        high_80 = int(round(np.exp(r["y_hat"] + 1.28 * model_sigma)))
+        range_vals.append(f"{low_80:,} – {high_80:,}")
+    rows.append(make_row("80% Prediction Range", range_vals))
+
+    rows.append(make_row("5-Year Trend", [render_trend_badge_html(t["badge"], t["color"]) for t in trends]))
+
+    reach_vals = []
+    for _, r in selected_df.iterrows():
+        cno = int(r["choice_no"])
+        if cno in blocked_dict:
+            w = blocked_dict[cno]
+            reach_vals.append(f"<span style='color: #EF4444; font-weight: 700;'>⚠️ Unreachable</span><br><span style='font-size:11px; color:#94A3B8;'>Sits after #{w['blocking_choice']} ({w['blocking_prob']:.0%})</span>")
+        else:
+            reach_vals.append("<span style='color: #22C55E; font-weight: 600;'>✓ Reachable</span>")
+    rows.append(make_row("JoSAA Strategic Status", reach_vals))
+
+    tbody = "\n".join(rows)
+    thead = "".join(header_th)
+    return f"""
+    <table class="compare-table">
+        <thead><tr>{thead}</tr></thead>
+        <tbody>{tbody}</tbody>
+    </table>
+    """
+
+
+# --- FEATURE 4: COMPARE 2-3 OPTIONS SIDE BY SIDE ---
+st.markdown("---")
+st.markdown("### ⚖️ Compare 2–3 Options Side by Side")
+
+rank_compare_callout = (
+    f"Using your simulated rank: {current_student_rank:,}"
+    if rank_shift_pct != 0
+    else f"Using your rank: {current_student_rank:,}"
+)
+
+st.markdown(
+    f"""
+    <div style="font-size: 13.5px; color: #38BDF8; font-weight: 600; margin-bottom: 10px;">
+        📊 <strong>{rank_compare_callout}</strong> &nbsp;·&nbsp; <span style="color: #94A3B8; font-weight: 400;">Multi-option head-to-head comparison</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+compare_choice_labels = [
+    f"#{r['choice_no']} {r['institute']}, {r['program']}, {r['quota']}"
+    for _, r in display_df.iterrows()
+]
+
+# Configure initial default compare selection
+default_compare_labels = []
+if "compare" in st.query_params:
+    try:
+        c_nos = [
+            int(x.strip())
+            for x in st.query_params["compare"].split(",")
+            if x.strip().isdigit()
+        ]
+        for cno in c_nos:
+            matched = display_df[display_df["choice_no"] == cno]
+            if not matched.empty:
+                r = matched.iloc[0]
+                default_compare_labels.append(
+                    f"#{r['choice_no']} {r['institute']}, {r['program']}, {r['quota']}"
+                )
+    except Exception:
+        default_compare_labels = []
+
+if not default_compare_labels and len(compare_choice_labels) >= 2:
+    # Default to choices #4 and #21 if available, else first 2
+    c4_match = [lbl for lbl in compare_choice_labels if lbl.startswith("#4 ")]
+    c21_match = [lbl for lbl in compare_choice_labels if lbl.startswith("#21 ")]
+    if c4_match and c21_match:
+        default_compare_labels = [c4_match[0], c21_match[0]]
+    else:
+        default_compare_labels = compare_choice_labels[:2]
+
+selected_compare_labels = st.multiselect(
+    "Pick 2 or 3 options from your current list to compare:",
+    options=compare_choice_labels,
+    default=default_compare_labels,
+    max_selections=3,
+    help="Select exactly 2 or 3 choices to view side-by-side risk cards, multi-series trajectory plot, and aligned metrics.",
+)
+
+is_compare_valid, compare_validation_msg = validate_selection_count(
+    len(selected_compare_labels)
+)
+
+if not is_compare_valid:
+    st.info(f"💡 {compare_validation_msg}")
+else:
+    # Extract selected choice numbers and retrieve rows
+    selected_choice_nos = [
+        int(lbl.split(" ")[0].replace("#", ""))
+        for lbl in selected_compare_labels
+    ]
+    compare_selected_df = (
+        display_df[display_df["choice_no"].isin(selected_choice_nos)]
+        .sort_values("choice_no")
+        .reset_index(drop=True)
+    )
+
+    # 1. Order Check (Unreachable Option Warning)
+    comp_order_warnings = check_order_unreachable(
+        compare_selected_df, prob_col="shifted_probability"
+    )
+    for warn in comp_order_warnings:
+        st.warning(
+            f"⚠️ **JoSAA Order Warning:** {warn['message']}"
+        )
+
+    # 2. Side-by-Side Glass Cards Layout (2 or 3 columns on desktop, stacked on mobile)
+    card_cols = st.columns(len(compare_selected_df))
+    comp_trends = []
+
+    for col_idx, (_, row) in enumerate(compare_selected_df.iterrows()):
+        hist_match = history_df[
+            (history_df["institute"] == row["institute"])
+            & (history_df["program"] == row["program"])
+            & (history_df["quota"] == row["quota"])
+            & (history_df["seat_type"] == row["seat_type"])
+            & (history_df["gender"] == row["gender"])
+        ].sort_values("year")
+
+        hist_ranks = hist_match["closing_rank"].tolist()
+        trend_res = compute_trend(hist_ranks)
+        comp_trends.append(trend_res)
+
+        tier_label = row["shifted_label"]
+        tier_color = (
+            "#EF4444"
+            if tier_label == "Dream"
+            else "#F59E0B"
+            if tier_label == "Target"
+            else "#22C55E"
+        )
+        prob_val = float(row["shifted_probability"])
+        badge_html = render_trend_badge_html(
+            trend_res["badge"], trend_res["color"]
+        )
+        gauge_html = render_svg_circular_gauge(prob_val, tier_label)
+
+        style_cfg = OPTION_STYLES[col_idx % len(OPTION_STYLES)]
+        sparkline_html = render_svg_sparkline(
+            hist_ranks, color=style_cfg["color"]
+        )
+
+        pred_rank = int(round(np.exp(row["y_hat"])))
+        low_80 = int(round(np.exp(row["y_hat"] - 1.28 * model_sigma)))
+        high_80 = int(round(np.exp(row["y_hat"] + 1.28 * model_sigma)))
+
+        card_html = (
+            f'<div class="glass-metric" style="padding: 16px 18px; border-top: 4px solid {tier_color}; min-height: 380px;">'
+            f'<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">'
+            f'<span style="background: rgba(14, 165, 233, 0.15); border: 1px solid rgba(14, 165, 233, 0.35); color: #38BDF8; font-size: 12px; font-weight: 800; padding: 2px 8px; border-radius: 6px;">Choice #{row["choice_no"]}</span>'
+            f'{badge_html}'
+            f'</div>'
+            f'<div style="font-size: 15px; font-weight: 800; color: #FFFFFF; line-height: 1.25; margin-bottom: 2px;">{row["institute"]}</div>'
+            f'<div style="font-size: 13px; font-weight: 600; color: #38BDF8; margin-bottom: 10px;">{row["program"]}</div>'
+            f'<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;">'
+            f'<span class="model-chip" style="font-size: 11px;">🏛️ {row["quota"]}</span>'
+            f'<span class="model-chip" style="font-size: 11px;">💺 {row["seat_type"]}</span>'
+            f'<span class="model-chip" style="font-size: 11px;">👥 {row["gender"]}</span>'
+            f'</div>'
+            f'<div style="display: flex; align-items: center; justify-content: space-around; background: rgba(0, 0, 0, 0.25); border-radius: 10px; padding: 8px; margin-bottom: 12px;">'
+            f'{gauge_html}'
+            f'<div style="text-align: center;">'
+            f'<div style="font-size: 10.5px; text-transform: uppercase; color: #94A3B8; font-weight: 700; letter-spacing: 0.5px;">Decision Tier</div>'
+            f'<div style="font-size: 17px; font-weight: 800; color: {tier_color}; margin-top: 2px;">{tier_label}</div>'
+            f'<div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">Admit: {prob_val:.1%}</div>'
+            f'</div>'
+            f'</div>'
+            f'<div style="margin-bottom: 12px;">'
+            f'<div style="color: #94A3B8; font-size: 10.5px; text-transform: uppercase; font-weight: 700;">Predicted Cutoff</div>'
+            f'<div style="font-size: 16px; font-weight: 800; color: #FFFFFF;">{pred_rank:,} '
+            f'<span style="font-size: 11.5px; font-weight: 400; color: #94A3B8; margin-left: 4px;">(80%: {low_80:,} – {high_80:,})</span>'
+            f'</div>'
+            f'</div>'
+            f'<div>'
+            f'<div style="color: #94A3B8; font-size: 10.5px; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">5-Year Cutoff Sparkline</div>'
+            f'{sparkline_html}'
+            f'</div>'
+            f'</div>'
+        )
+        with card_cols[col_idx]:
+            st.markdown(card_html, unsafe_allow_html=True)
+
+    # 3. One Combined Plotly Chart with color-blind line styles and marker shapes
+    st.markdown("#### 📈 Multi-Option Cutoff Trajectory")
+    comp_fig = create_comparison_chart(
+        compare_selected_df, history_df, current_student_rank, rank_shift_pct
+    )
+    st.plotly_chart(comp_fig, use_container_width=True)
+
+    # 4. Aligned Comparison Table
+    st.markdown("#### 📋 Aligned Attribute & Metric Comparison")
+    table_html = build_aligned_comparison_table_html(
+        compare_selected_df, comp_trends, comp_order_warnings, model_sigma
+    )
+    st.markdown(table_html, unsafe_allow_html=True)
+
+    # 5. Rule-Based Quick Facts Box (no AI-generated text)
+    comp_facts = generate_quick_facts(
+        compare_selected_df,
+        comp_trends,
+        prob_col="shifted_probability",
+        label_col="shifted_label",
+    )
+    facts_list_html = "".join(
+        f"<div style='margin-bottom: 4px;'>• {f}</div>" for f in comp_facts
+    )
+    st.markdown(
+        f"""
+        <div class="quick-facts-box">
+            <div style="font-weight: 700; color: #38BDF8; font-size: 14px; margin-bottom: 8px;">
+                💡 Comparison Quick Facts
+            </div>
+            {facts_list_html}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # Disclaimer and Methodology Expander
 st.markdown(

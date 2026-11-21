@@ -34,11 +34,11 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Feature 2: What-if slider (Rescore engine `src/whatif.py`, 5 passing unit tests in `tests/test_whatif.py`, sub-second `@st.cache_data` updates, 6 screenshots at -20%, 0%, +20% for desktop & 390px mobile)
 - [x] Quick Fixes (a) & (b): Seat admission chance with one decimal and 99.9% cap with fixed seed 42; comparison metrics count format (e.g. "10 to 25, +15").
 - [x] Feature 3: Why-this-probability panel with 5-year trend badge (`src/trend.py`, `tests/test_trend.py`, `@st.dialog` + inline panel in `app/streamlit_app.py`, 6 screenshots captured across Getting harder / Getting easier / Volatile for desktop and 390px mobile).
-- [ ] Feature 4: Compare 2-3 options side by side
+- [x] Feature 4: Compare 2-3 options side by side (`src/compare.py`, `tests/test_compare.py`, side-by-side deck, Plotly multi-series chart, aligned comparison table, JoSAA unreachable order warning, deterministic quick facts, 6 screenshots verified)
 - [ ] Feature 5: PDF export
 
 ## Currently working on
-- Feature 3 completed and verified across all requested viewports and trend categories. Awaiting user OK to proceed to Feature 4 (Compare 2-3 options side by side).
+- Feature 4 completed and verified across all requested viewports and conditions (2 options, 3 options, unreachable warning). Awaiting user OK to proceed to Feature 5 (PDF export).
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% prediction interval coverage |
@@ -59,4 +59,14 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
   - Plotly dark-theme chart features actual closing ranks (up to 5 years), predicted closing rank star marker, shaded 80% prediction interval band, student rank horizontal reference line, log-scale y-axis with thousands separators, and all colors explicitly labeled.
   - Step-by-step plain words breakdown reveals $z$-score, 80% interval, log-space delta, formula $P = 1 - \Phi((\ln(\text{rank}) - \hat{y}) / \sigma)$, model provenance (Weighted Trend Predictor), measured error (MAE = 0.1393, 80% coverage = 90.06%), quota, seat type, and mandatory JoSAA verification reminder.
   - 7 unit tests in `tests/test_trend.py` verify synthetic rising, falling, volatile, <3 points, and stable series, plus probability numerical consistency against choice list rows.
-- **Test Suite Status:** 34/34 tests passing.
+- **Feature 4 (Side-by-Side Option Comparison):**
+  - Core logic in `src/compare.py`: `validate_selection_count`, `check_order_unreachable`, `generate_quick_facts`, `render_svg_circular_gauge`, `render_svg_sparkline`, and `create_comparison_chart`.
+  - Multiselect component enforces $[2, 3]$ selections with helpful status cues when $<2$ or $>3$ are selected.
+  - Supports query parameter pre-selection (`?compare=1,2,3`).
+  - Responsive layout: 2-3 columns on desktop, stacked on mobile (390 px) with SVG circular gauge, tier tag, predicted cutoff + 80% interval, trend badge, choice number, and cutoff sparkline.
+  - Combined Plotly chart on log y-axis with colorblind-friendly markers (`circle`, `square`, `triangle-up`) and line styles (`solid`, `dash`, `dot`) plus active student rank reference line.
+  - Aligned comparison table with identical row labels across all compared options.
+  - JoSAA allocation order check: alerts user if an option sits after an earlier choice with admission probability $\ge 95\%$, marking unreachable options with clear warning badges.
+  - Deterministic rule-based quick facts generator concluding with mandatory advisory: *"This compares admission chances only. Branch, placement, location and fees also matter."*
+  - 5 unit tests in `tests/test_compare.py` verify selection bounds, probability numerical consistency across What-If shifts, sparse history handling, unreachable order detection, and quick-facts formatting.
+- **Test Suite Status:** 39/39 tests passing.

@@ -386,7 +386,13 @@ def build_pdf_report(
         )
     )
     story.append(profile_table)
-    story.append(Spacer(1, 8))
+    story.append(
+        Paragraph(
+            "<font size='7' color='#64748B'>* Note: B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.</font>",
+            style_body,
+        )
+    )
+    story.append(Spacer(1, 6))
 
     # 3. Strategic Summary Box
     # Probability and Tier counts
@@ -645,9 +651,9 @@ def build_pdf_report(
     story.append(Paragraph("1. How to Read Risk Tiers", style_section_h2))
     guide_data = [
         [
-            Paragraph("<b>Dream</b><br/>(P &lt; 30%)", style_tbl_cell_bold),
+            Paragraph("<b>Dream</b><br/>(5% &le; P &lt; 30%)", style_tbl_cell_bold),
             Paragraph(
-                "Aspirational, highly selective branches or institutes. Low allotment probability, but zero penalty for placing them at the top. Never omit them, but do not rely on them for your seat.",
+                "Aspirational, highly selective branches or institutes (5% &le; P &lt; 30%). Low allotment probability, but zero penalty for placing them at the top. Options below 5% are excluded to ensure list quality. Never omit them, but do not rely on them for your seat.",
                 style_body,
             ),
         ],

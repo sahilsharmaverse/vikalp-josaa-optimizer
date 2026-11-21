@@ -1,4 +1,30 @@
+# Virtual environments
+venv/
 .venv/
+env/
+ENV/
+
+# Python byte-code
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testing & cache
 .pytest_cache/
+.coverage
+htmlcov/
+
+# Secrets & environment
+.env
+.env.*
+.streamlit/secrets.toml
+
+# Raw scraped data (only data/processed/ is committed)
+data/raw/
+
+# System files
+.DS_Store
+Thumbs.db

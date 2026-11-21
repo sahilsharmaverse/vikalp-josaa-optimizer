@@ -525,6 +525,7 @@ with st.sidebar:
         default=["CSE", "ECE"],
         help="Leave empty to consider all branches.",
     )
+    st.caption("ℹ️ B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.")
 
     institute_types = st.multiselect(
         "Institute Types",
@@ -630,6 +631,12 @@ if df_list.empty:
         "No options match your filters. Try adding more branches or institute types."
     )
     st.stop()
+
+if len(df_list) < active_student.list_size:
+    st.info(
+        f"Showing all {len(df_list)} qualifying options with admission chance ≥ 5.0%. "
+        f"Fewer than your requested {active_student.list_size} choices met the 5% minimum probability threshold."
+    )
 
 # Feature 1 Baseline Simulation (Quick fix a: 99.9% cap, 1 decimal, fixed seed)
 base_p_at_least_one = simulate_at_least_one_seat_probability(
@@ -794,7 +801,7 @@ with col1:
         <div class="glass-metric metric-dream">
             <div class="metric-title" style="color: #EF4444;">Dream Options</div>
             <div class="metric-value" style="font-size: {'22px' if rank_shift_pct != 0 else '32px'};">{dream_display}</div>
-            <div class="metric-desc">P &lt; 30% &middot; Aspirational reach</div>
+            <div class="metric-desc">5% &le; P &lt; 30% &middot; Aspirational reach</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1352,7 +1359,8 @@ with st.expander("ℹ️ How Vikalp Works"):
         """
         - **Quota & Category Precision**: Evaluates All India (AI), Home State (HS), and Other State (OS) quotas accurately based on your 12th schooling state. OPEN seats are evaluated with CRL, while category seats use category ranks.
         - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual standard error read directly from calibrated model metrics.
-        - **Strategic Risk Balance**: Constructs a balanced list with **20% Dream** ($P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$) options.
+        - **Strategic Risk Balance**: Constructs a balanced list with **20% Dream** ($5\\% \\le P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$) options. Choices with $P < 5\\%$ are strictly filtered out to ensure every choice is viable.
+        - **Program Scope**: Covers all B.Tech, B.S., and Dual Degree engineering programs. B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.
         - **Portfolio Admission Chance**: Estimates the probability of securing at least one seat across your entire list via a 2,000-run Monte Carlo simulation modeling correlated exam/counselling shocks ($\rho = 0.5$).
         - **Unreachable Choice Detection**: Highlights choices ordered after a near-certain option ($P \\ge 95\\%$) to protect you from wasted choices.
         """

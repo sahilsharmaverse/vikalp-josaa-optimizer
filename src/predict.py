@@ -14,6 +14,9 @@ from scipy.special import ndtr
 
 MIN_PROBABILITY = 0.01
 MAX_PROBABILITY = 0.99
+MIN_LIST_PROB = 0.05
+DREAM_MAX_PROB = 0.30
+TARGET_MAX_PROB = 0.80
 Z_80 = 1.28155  # Critical value for 80% central prediction interval
 
 
@@ -74,10 +77,15 @@ def get_prediction_interval(
 
 
 def label_risk(prob: float) -> str:
-    """Classify probability into JoSAA decision tiers per rules.md."""
-    if prob < 0.30:
+    """Classify probability into JoSAA decision tiers per rules.md.
+
+    - Dream: MIN_LIST_PROB <= P < DREAM_MAX_PROB (0.05 <= P < 0.30)
+    - Target: DREAM_MAX_PROB <= P < TARGET_MAX_PROB (0.30 <= P < 0.80)
+    - Safe: P >= TARGET_MAX_PROB (P >= 0.80)
+    """
+    if prob < DREAM_MAX_PROB:
         return "Dream"
-    elif prob < 0.80:
+    elif prob < TARGET_MAX_PROB:
         return "Target"
     else:
         return "Safe"

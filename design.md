@@ -18,7 +18,7 @@ High-energy, modern, dark-theme aesthetic designed to inspire confidence and cla
 | Primary Accent / Interactive | `#0EA5E9` (Electric Cyan) | Crisp interactive accent (buttons, active sliders, links) — distinct from Target amber |
 | Safe Tier | `#22C55E` (Emerald Green) | High-probability anchor options ($P \ge 80\%$) |
 | Target Tier | `#F59E0B` (Vibrant Amber) | Core competitive zone ($30\% \le P < 80\%$) |
-| Dream Tier | `#EF4444` (Vivid Crimson) | Aspirational reach options ($P < 30\%$) |
+| Dream Tier | `#EF4444` (Vivid Crimson) | Aspirational reach options ($5\% \le P < 30\%$, floor $P \ge 5\%$) |
 | Trend: Getting harder | `#EF4444` (Red) | Cutoffs tightening / competition rising |
 | Trend: Getting easier | `#22C55E` (Green) | Cutoffs relaxing / admission chance expanding |
 | Trend: Volatile | `#9CA3AF` (Grey) | Historical closing ranks fluctuate across cycles |
@@ -65,7 +65,7 @@ font = "sans serif"
 
 5. **Three-Lane Staircase View:**
    - Visual strategic lane showing:
-     - **Lane 1: Dream** (Aspirational reach, $P < 30\%$, top 20%)
+     - **Lane 1: Dream** (Aspirational reach, $5\% \le P < 30\%$, top 20%, minimum floor $P \ge 5\%$)
      - **Lane 2: Target** (Sweet spot, $30\% \le P < 80\%$, core 50%)
      - **Lane 3: Safe** (Safety nets, $P \ge 80\%$, anchor 30%)
    - Shows candidate how choices cascade down the JoSAA preference engine.

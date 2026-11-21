@@ -1,173 +1,239 @@
 # 🎯 Vikalp: Counselling Choice-List Optimizer for JoSAA
 
+> **Your rank. Your seats. Your smartest list.**  
+> An intelligent, uncertainty-aware choice-list optimization and decision-support platform for IIT, NIT, IIIT, and GFTI admissions.
+
 **Author:** Sahil Sharma  
-**Live Demo:** Deployed on Streamlit Community Cloud  
-**Tech Stack:** Python 3.11, Streamlit, Pandas, NumPy, SciPy, LightGBM, Plotly, Playwright  
-
----
-
-## 📌 Problem Statement
-
-Every year, over 200,000 students clearing JEE Main and JEE Advanced must prepare a prioritized choice list of 50 to 100+ programs across **IITs, NITs, IIITs, and GFTIs** under extreme stress. 
-
-Most students rely on static past-year cutoff PDFs or naive college predictors that show last year's cutoff with **zero uncertainty quantification**. This causes two severe counselling traps:
-1. **Premature Allotment Trap:** Placing a safe option too high up in the choice list permanently forfeits the opportunity to be allotted higher-aspiration (Target or Dream) seats, because JoSAA allocates the **first choice** you qualify for from top to bottom.
-2. **Exclusion Trap:** Submitting a list dominated by over-optimistic dream choices leaves students with no seat allotment in round 5/6.
-3. **Rank & Quota Confusion:** Students routinely confuse Common Rank List (CRL) with Category Ranks (EWS, OBC-NCL, SC, ST), All India (AI) vs. Home State (HS) vs. Other State (OS) quotas, and Gender-Neutral vs. Female-only supernumerary pools.
-
-**Vikalp** solves this by calculating statistical **admission probabilities** for every eligible program and automatically constructing an **ordered, risk-balanced JoSAA choice list** (20% Dream / 50% Target / 30% Safe) with automated warnings for unreachable choices.
+**Live Demo:** [vikalp-josaa.streamlit.app](https://vikalp-josaa.streamlit.app) *(Streamlit Community Cloud Deployment Placeholder)*  
+**Data Attribution:** Historical counselling and cutoff data sourced directly from the official Joint Seat Allocation Authority archive ([josaa.nic.in](https://josaa.nic.in)).
 
 ---
 
 ## 📸 Screenshots
 
-![Vikalp Choice-List Optimizer Dashboard](assets/vikalp_dashboard.png)
+| 1. Intelligent Choice List & What-If Toolbar | 2. Side-by-Side 3-Option Comparison Deck |
+|:---:|:---:|
+| ![Feature 2 What-If Toolbar](docs/screenshots/feature2_whatif_0pct_desktop.png) | ![Feature 4 Comparison Deck](docs/screenshots/feature4_compare_3options_desktop.png) |
 
-*Figure 1: Full Vikalp dashboard showing sidebar parameters, risk tier summary metric cards, interactive choice list table with admit chance progress bars, and historical closing rank trajectory chart.*
+| 3. Deep-Dive "Why this probability?" Modal | 4. Executive In-Memory PDF Export Report |
+|:---:|:---:|
+| ![Feature 3 Deep Dive](docs/screenshots/feature3_getting_harder_desktop.png) | ![Feature 5 PDF Report](docs/screenshots/feature5_pdf_page1.png) |
 
 ---
 
-## 📊 Data Source & Processing
+## 📌 Problem Statement
 
-- **Data Source:** Official JoSAA Counselling Archive (`josaa.admissions.nic.in`) covering **5 consecutive cycles (2021, 2022, 2023, 2024, 2025)**.
-- **Raw Volume:** 52,485 raw final-round opening and closing rank entries extracted directly from DOM tables.
-- **Cleaning & Normalization:**
-  - Removed all preparatory seat lists (`P`-suffix ranks).
-  - Filtered quotas to standard categories: `AI`, `HS`, and `OS` (dropping out-of-scope `GO`, `JK`, and `LA` quotas).
-  - Filtered seat types to standard categories: `OPEN`, `EWS`, `OBC-NCL`, `SC`, and `ST` (dropping PwD sub-allocations).
-  - Normalized institute names and degrees across years, while preserving distinct seat offerings (`4-Year B.Tech` vs. `5-Year Dual Degree` vs. `BS-MS`).
-  - Mapped all 129 participating institutes to their `institute_type` (`IIT`, `NIT`, `IIIT`, `GFTI`) and physical Indian `state`.
-- **Final Processed Dataset:** **45,947 validated records** stored in `data/processed/cutoffs.parquet` with time-lag features (`prev_closing_1`, `prev_closing_2`, `prev_closing_3`, `mean_last_2`, `delta_1yr`, `trend_slope`, `years_of_history`).
+Every year, over 250,000 engineering aspirants clearing JEE Main and JEE Advanced submit a preference list of 50 to 100+ program choices across **23 IITs, 32 NITs, 26 IIITs, and 38 GFTIs** under intense deadline stress.
+
+Most students rely on static past-year cutoff PDFs or simplistic predictors that show last year's cutoff with **zero uncertainty quantification**. This creates critical strategic failures during seat allocation:
+1. **Premature Allotment Trap:** Placing an overly safe option above competitive target options locks the student into an inferior seat. Under JoSAA rules, once you are allotted a choice, **all lower choices are permanently discarded**.
+2. **Exclusion Trap:** Overfilling lists with unviable dream options results in zero allotments across all rounds.
+3. **Sub-Floor Noise:** Filling choices where admission probability is essentially near zero ($< 1\%$) wastes precious slots on unreachable programs.
+4. **Rank & Quota Traps:** Confusing JEE Main Common Rank List (CRL) with Category Ranks (EWS, OBC-NCL, SC, ST), All India (AI) vs. Home State (HS) vs. Other State (OS) quotas, and Gender-Neutral vs. Female-only supernumerary pools.
+
+**Vikalp** eliminates these traps through statistical probability modeling, multi-year trend forecasting, risk-balanced list generation, and proactive allocation order warnings.
+
+---
+
+## 📊 Data & Processing
+
+- **Data Source:** Official JoSAA round data (2021–2025) archived at [josaa.nic.in](https://josaa.nic.in).
+- **Raw Volume:** 52,485 raw round cutoff entries extracted across all rounds.
+- **Cleaning & Filtering Pipeline:**
+  - Standardized target on **final-round closing ranks** for each cycle.
+  - Stripped preparatory rank records (`P`-suffix ranks).
+  - Normalization of quota mappings: `AI` (All India), `HS` (Home State), and `OS` (Other State).
+  - Normalization of seat types: `OPEN`, `EWS`, `OBC-NCL`, `SC`, and `ST`.
+  - Seat pool categorization into `Gender-Neutral` and `Female-only` (supernumerary).
+  - Explicit exclusion of `B.Arch` and `B.Planning` programs (which use JEE Main Paper 2 scores, not engineering Paper 1 CRL).
+  - Generated time-lag features (`prev_closing_1`, `prev_closing_2`, `prev_closing_3`, `mean_last_2`, `delta_1yr`, `trend_slope`).
+- **Clean Processed Dataset:** **44,642 validated engineering records** stored in compressed Apache Parquet format at `data/processed/cutoffs.parquet` (~0.84 MB).
 
 ---
 
 ## 🧠 Methodology & Mathematical Formulation
 
-### 1. Quota & Category-Aware Eligibility Filtering
-- **IIT vs. Non-IIT Separation:** IIT seats are evaluated strictly using the candidate's **JEE Advanced** rank; NIT, IIIT, and GFTI seats are evaluated strictly using **JEE Main** ranks.
-- **Quota Logic:**
-  - `AI` (All India): Always eligible for all students regardless of domicile state.
-  - `HS` (Home State): Eligible if and only if $\text{Institute State} == \text{Student Home State}$.
-  - `OS` (Other State): Eligible if and only if $\text{Institute State} \ne \text{Student Home State}$.
-- **Category Ranks:** `OPEN` seats are evaluated using the student's **CRL** rank. Reserved category seats (`EWS`, `OBC-NCL`, `SC`, `ST`) are evaluated using the student's **category rank**. Category ranks are never compared against CRL cutoffs.
-- **Gender Pools:** Female candidates compete for both `Gender-Neutral` and `Female-only` pools; male candidates compete strictly for `Gender-Neutral` seats.
+### 1. Predicted Cutoff Model
+To estimate the upcoming cycle's log closing rank $\hat{y} = \ln(\widehat{\text{CR}})$, Vikalp computes an exponentially weighted trend over the most recent available cycles:
+$$\hat{y} = w_1 \ln(\text{CR}_{t-1}) + w_2 \ln(\text{CR}_{t-2}) + w_3 \ln(\text{CR}_{t-3})$$
+where $(w_1, w_2, w_3) = (0.50, 0.30, 0.20)$ for programs with 3 prior years, and $(0.625, 0.375)$ for programs with 2 prior years.
 
-### 2. Admission Probability Engine
-A student is admitted to a choice if their rank is less than or equal to the final closing rank. We model the predicted log closing rank as $\hat{y}$ with residual uncertainty $\sigma$ measured on held-out historical cycles:
+### 2. Admission Probability
+A student with rank $R$ is admitted if and only if $R \le \text{CR}$. Modeling log-scale cutoff variations as Gaussian perturbations with standard deviation $\sigma$:
+$$z = \frac{\ln(R) - \hat{y}}{\sigma}, \quad P(\text{admit}) = 1 - \Phi(z) = \Phi(-z)$$
+Probabilities are clipped to $[0.01, 0.99]$.
 
-$$z = \frac{\ln(\text{student\_rank}) - \hat{y}}{\sigma}$$
+### 3. Risk Tiers & Minimum Probability Floor
+- **Minimum Probability Floor (`MIN_LIST_PROB = 0.05`):** Choices with $P < 5\%$ are strictly excluded to ensure no slots are squandered on unviable options.
+- **Dream ($5\% \le P < 30\%$):** High-aspiration reach choices; maximum upside with zero allocation penalty.
+- **Target ($30\% \le P < 80\%$):** Competitive core choices tightly calibrated to the candidate's rank.
+- **Safe ($P \ge 80\%$):** High-certainty safety anchors to guarantee allotment.
+- **Risk-Balanced Allocation:** Automatically balances lists to **20% Dream / 50% Target / 30% Safe**. If fewer than $N$ options meet the 5% threshold, Vikalp returns a shorter list rather than padding with sub-floor choices.
 
-$$P(\text{admit}) = 1 - \Phi(z) = \Phi(-z)$$
+### 4. Portfolio Admission Chance (Correlated Monte Carlo)
+The overall probability of securing at least one seat across a list of $M$ options is simulated via a 2,000-run Monte Carlo simulation:
+$$z_i = \sqrt{\rho} \cdot s + \sqrt{1 - \rho} \cdot e_i, \quad s, e_i \overset{\text{i.i.d.}}{\sim} \mathcal{N}(0, 1)$$
+where $s$ represents a shared macro exam/counselling shift (default correlation $\rho = 0.50$), $e_i$ represents program-specific shocks, and $\text{CR}_i = \exp(\hat{y}_i + \sigma z_i)$.
 
-where $\Phi$ is the standard normal cumulative distribution function (CDF). Probabilities are clipped to $[0.01, 0.99]$ (never showing false certainty of 0% or 100%).
-
-### 3. Risk Tiers & Mix Balancing
-Options are classified into three calibrated risk zones:
-- 🔴 **Dream ($P < 30\%$):** High-aspiration reach choices.
-- 🟡 **Target ($30\% \le P < 80\%$):** Realistic, competitive target choices.
-- 🟢 **Safe ($P \ge 80\%$):** High-confidence safety fallbacks.
-
-The optimizer selects options to satisfy an optimal **20% Dream / 50% Target / 30% Safe** risk portfolio.
-
-### 4. Preference Scoring & Strategic Ordering
-- **College-first:** Programs are scored primarily by institutional prestige (using the historical median closing rank of OPEN CSE as an intrinsic proxy), secondarily by preferred branch hierarchy.
-- **Branch-first:** Programs are scored primarily by the student's preferred branch order, secondarily by institutional prestige.
-- **Strategic Ordering:** Choices are ordered strictly **Dream $\to$ Target $\to$ Safe**.
-- **Unreachable-Option Warning:** If choice $\#K$ achieves $P \ge 95\%$, any choices placed *below* $\#K$ are flagged as effectively unreachable, protecting the applicant from wasted choice entries.
+### 5. JoSAA Sequential Order Alert
+Under JoSAA allocation mechanics, choices are evaluated strictly from #1 downwards. Any choice placed below an option with $P \ge 95\%$ is flagged as **effectively unreachable**.
 
 ---
 
-## 📈 Model Validation & Results
+## 📈 Model Performance & Calibration Results
 
-Models were trained on historical cycles up to 2024 and evaluated on the held-out **2025 cycle** (8,709 seat options with $\ge 2$ years history):
+### Comparative Validation on Held-Out Year (2025)
 
-| Model | MAE ($\ln(\text{rank})$) | 80% Interval Coverage | Residual Sigma ($\sigma$) | Status |
-|---|:---:|:---:|:---:|:---:|
-| **Naive Baseline (Last Year's Cutoff)** | `0.1485` | `90.07%` | `0.2591` | Benchmark |
-| **Weighted-Trend Baseline (0.5, 0.3, 0.2)** | **`0.1393`** | **`90.06%`** | **`0.2285`** | **Selected for Production** |
-| **LightGBM Regressor (400 trees, lr=0.05)** | `0.1471` | `89.93%` | `0.2433` | Trained Artifact |
+| Model | Log-Rank MAE | 80% Prediction Interval Coverage | App Status |
+|---|---|---|---|
+| **Naive Last-Year Baseline** | 0.1485 | 90.07% | Reference |
+| **Weighted Trend Predictor** | **0.1393** | **90.06%** | **Active in Production App** |
+| **LightGBM Regressor** | 0.1471 | 89.93% | Explored (Benchmarked) |
 
-### Model Selection Note:
-LightGBM beats the naive last-year baseline (`0.1471` vs `0.1485`). However, the **3-Year Weighted-Trend Baseline** outperforms LightGBM (`0.1393` vs `0.1471` MAE) and achieves the tightest residual variance ($\sigma = 0.2285$) with 90.06% coverage for the 80% prediction interval. Per our predefined project rules, we do not over-tune LightGBM and maintain the more accurate and explainable weighted-trend predictor in production.
+> **Production Choice:** The app intentionally uses the **Weighted Trend Predictor**. It outperforms the naive baseline by ~0.01 log points, matches LightGBM accuracy, requires zero heavy framework overhead, and provides complete, transparent auditability for counselling students.
+
+### Multi-Year Prediction Interval Calibration ($\sigma = 0.2285$)
+
+| Held-Out Cycle | Evaluated Programs | MAE (Log Rank) | Raw Std ($\sigma_{\text{yr}}$) | 50% Interval Coverage | 80% Interval Coverage | 90% Interval Coverage | Brier Score |
+|---|---|---|---|---|---|---|---|
+| **2023** | 7,481 | 0.1587 | 0.2272 | 64.38% | **87.23%** | 92.25% | 0.1535 |
+| **2024** | 8,003 | 0.1486 | 0.2273 | 68.09% | **87.42%** | 92.15% | 0.1483 |
+| **2025** | 8,709 | 0.1393 | 0.2285 | 70.34% | **90.06%** | 93.77% | 0.1430 |
+
+### Why $\sigma = 0.2285$ Was Retained
+Empirical coverage for the nominal 80% interval spans **87.2% to 90.1%** across held-out cycles. This occurs because cutoff residuals are **leptokurtic (heavy-tailed)**: most programs have tiny year-over-year shifts ($|e| < 0.10$), while new seat additions or branch restructuring create occasional larger outliers.
+
+When $\sigma$ was scaled down to $0.1540$ to force nominal 80% coverage on 2025, **the Brier score degraded in every year** (e.g. 2025 Brier worsened from $0.1430 \to 0.1712$; 2023 80% coverage dropped to $74.96\%$). In college admissions counselling, **understating risk is catastrophic** (leading students to skip essential safety choices), whereas conservative coverage provides protective safety buffers. Thus, $\sigma = 0.2285$ is deliberately preserved.
 
 ---
 
-## ⚠️ Limitations
+## ⚡ Features (v1.0 & v1.1)
 
-1. **Statistical Nature:** Predictions are statistical estimates derived from historical trends and cannot account for unforeseen shifts in student sentiment or macroeconomic factors.
-2. **Seat Matrix Shocks:** Significant expansions in seat capacity (e.g., adding supernumerary quotas or new campuses) can cause sudden cutoff shifts.
-3. **Out-of-Scope Quotas:** v1 covers standard All India, Home State, and Other State quotas for OPEN, EWS, OBC-NCL, SC, and ST categories. PwD allocations and specialized state quotas (GO, JK, LA) are out of scope for v1.
+- **Quota-Aware Eligibility Engine:** Accurately routes CRL and Category ranks (EWS, OBC-NCL, SC, ST) and enforces physical Home-State domicile boundaries.
+- **Seat Admission Chance:** Real-time Monte Carlo estimate (2,000 simulations, $\rho = 0.5$) with 1-decimal display capped at 99.9%.
+- **What-If Rank Sensitivity Slider:** Instant in-place rescoring ($\pm 20\%$ in 5% steps) with sub-second `@st.cache_data` response and an optional "Rebuild list at this rank" button.
+- **Why This Probability? Deep Dive:** Modal and inline panel showing 5-year closing rank history, Plotly log-scale trajectory with shaded 80% prediction interval, student rank reference line, 5-year trend badges (*Getting harder*, *Getting easier*, *Volatile*, *Stable*), and plain-words formula breakdowns.
+- **Side-by-Side 2–3 Option Comparison:** Multi-select deck with colorblind-accessible Plotly multi-series charts (distinct line styles and marker shapes), aligned metric comparison table, JoSAA allocation reachability check, and deterministic quick facts.
+- **In-Memory PDF Report Generator:** Print-friendly white layout via ReportLab (`BytesIO`), multi-page choice table with repeated headers, two-pass `NumberedCanvas` (*"Page X of Y"*), dagger footnote for unreachable choices, methodology guide, and official verification disclaimers.
 
 ---
 
-## 💻 How to Run Locally
+## ⚠️ Known Limitations
 
-### 1. Prerequisites
+1. **B.Arch and B.Planning Excluded:** Architecture and Planning seats are allotted via JEE Main Paper 2 ranks. Vikalp v1 focuses on engineering degrees (B.Tech, B.S., Dual Degree) using Paper 1 CRL.
+2. **Single Global Sigma ($\sigma$):** Uses a calibrated global residual standard error ($\sigma = 0.2285$) across all branches rather than institute-tier-specific variances.
+3. **Final Round Data Only:** Models Round 5/6 final closing ranks. Opening rounds fluctuate and are not modeled.
+4. **Special Quotas Out of Scope:** Preparatory seats, PwD reservations, and regional quotas (`JK`, `LA`, `GO`) are excluded.
+5. **Advisory Tool Only:** Historical probability estimates do not guarantee admission.
+
+---
+
+## 🚀 How to Run & Test
+
+### Prerequisites
 - Python 3.11+
-- Git
+- Virtual environment tool (`venv` or `uv`)
 
-### 2. Clone the Repository
+### Local Setup
 ```bash
+# Clone the repository
 git clone https://github.com/<your-username>/vikalp.git
 cd vikalp
-```
 
-### 3. Setup Virtual Environment
-```bash
-# Using python venv
+# Create and activate virtual environment
 python -m venv .venv
+source .venv/bin/activate       # On Linux/macOS
+# .venv\Scripts\activate        # On Windows
 
-# Activate environment:
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-source .venv/bin/activate
-```
-
-### 4. Install Dependencies
-```bash
+# Install production dependencies
 pip install -r requirements.txt
-```
 
-### 5. Run the Test Suite
-```bash
-pytest -v
-```
-
-### 6. Launch the Streamlit App
-```bash
+# Run the Streamlit web app
 streamlit run app/streamlit_app.py
 ```
-Open your browser at `http://localhost:8501`.
+
+### Running Tests
+```bash
+# Install developer dependencies (pypdf, pymupdf)
+pip install -r requirements-dev.txt
+
+# Run the full test suite
+pytest tests/ -v
+```
 
 ---
 
-## 🚀 Deployment to Streamlit Community Cloud
+## 📁 Project Structure
 
-The repository is configured for one-click deployment on **Streamlit Community Cloud**:
-
-1. **Push to GitHub:**
-   ```bash
-   git remote add origin https://github.com/<your-username>/vikalp.git
-   git branch -M main
-   git push -u origin main
-   ```
-2. **Deploy on Streamlit Cloud:**
-   - Go to [share.streamlit.io](https://share.streamlit.io) and sign in with GitHub.
-   - Click **"New app"**.
-   - Select your repository: `<your-username>/vikalp`.
-   - Set **Branch**: `main`.
-   - Set **Main file path**: `app/streamlit_app.py`.
-   - Click **"Deploy!"**.
-3. **Zero Scraping Required on Cloud:**
-   `data/processed/cutoffs.parquet` and `data/processed/institutes.csv` are tracked in the repository, enabling instant startup without external network dependencies.
+```
+vikalp/
+├── .github/
+│   └── workflows/
+│       └── tests.yml             # GitHub Actions CI for Ubuntu Linux (Python 3.11)
+├── app/
+│   ├── streamlit_app.py          # Interactive Streamlit application
+│   └── styles.css                # Glassmorphic dark theme stylesheet
+├── data/
+│   └── processed/
+│       ├── cutoffs.parquet       # Cleaned multi-year JoSAA closing cutoffs (44,642 rows)
+│       └── institutes.csv        # Normalized institute directory (129 institutes)
+├── docs/
+│   ├── calibration.png           # Multi-year calibration curve & PIT histogram
+│   └── screenshots/              # High-resolution application screenshots
+├── models/
+│   ├── lgbm.joblib               # LightGBM validation benchmark model
+│   └── metrics.json              # Calibrated residual sigma and error metrics
+├── scripts/
+│   ├── check_calibration.py      # Calibration and Brier score evaluation script
+│   └── run_sanity_evaluations.py # Sanity verification suite across student profiles
+├── src/
+│   ├── baseline.py               # Weighted trend forecasting engine
+│   ├── clean.py                  # Raw cutoff cleaning and normalization pipeline
+│   ├── compare.py                # Side-by-side option comparison engine
+│   ├── eligibility.py            # Quota, state, category, and gender eligibility filters
+│   ├── features.py               # Time-lag feature engineering
+│   ├── optimize.py               # Risk-balanced choice-list optimizer (MIN_LIST_PROB = 0.05)
+│   ├── pdf_report.py             # In-memory ReportLab PDF generator (NumberedCanvas)
+│   ├── predict.py                # Statistical probability and prediction interval functions
+│   ├── simulation.py             # Correlated Monte Carlo portfolio simulation (rho = 0.5)
+│   ├── trend.py                  # 5-year trend slope classifier and badge generator
+│   └── whatif.py                 # Real-time rank sensitivity rescoring engine
+├── tests/
+│   ├── conftest.py               # Pytest path configuration
+│   ├── test_compare.py           # Comparison engine and query parameter tests
+│   ├── test_edge_cases.py        # Boundary tests (empty, zero, negative, extreme ranks)
+│   ├── test_optimizer.py         # Optimizer, floor, and risk-mix tests
+│   ├── test_pdf.py               # PDF generation, escaping, and text extraction tests
+│   ├── test_probability.py       # Probability formula and CDF bounds tests
+│   ├── test_simulation.py        # Monte Carlo simulation tests
+│   ├── test_trend.py             # Trend badge classification tests
+│   └── test_whatif.py            # What-If sensitivity tests
+├── pytest.ini                    # Root pytest configuration (pythonpath = .)
+├── requirements.txt              # Pinned production dependencies
+└── requirements-dev.txt          # Developer test dependencies (pypdf, pymupdf)
+```
 
 ---
 
-## ⚖️ Official Disclaimer
+## 🗺️ Future Roadmap
 
-> **Disclaimer:** Vikalp provides statistical estimates based on historical JoSAA cutoff trends. It is **not** an official seat prediction or guarantee of admission. Actual cutoff ranks fluctuate annually based on candidate preferences, seat availability, and test demographics. Always verify official notifications and matrix allocations at [josaa.nic.in](https://josaa.nic.in).
+- [ ] **Empirical-Residual / Student-$t$ Probabilities:** Upgrade from Gaussian assumption to Student-$t$ distributions or empirical rank-residual lookup to better capture heavy cutoff tails.
+- [ ] **Smart Trim of Unreachable Choices:** Automatically offer a 1-click option to prune choices ordered below a $\ge 95\%$ option and backfill with high-value alternatives.
+- [ ] **Per-Group Sigma Scaling:** Fit separate $\sigma$ values by institute tier (IIT vs. NIT vs. IIIT) and branch volatility.
+- [ ] **State Counselling Expansion:** Support state-level engineering counselling portals (KCET in Karnataka, MHT-CET in Maharashtra).
+- [ ] **Multilingual UI:** Complete Hindi translation of the choice generator for Tier-2/3 applicants.
+- [ ] **FastAPI Backend & Containerization:** Package backend into standalone FastAPI microservice with Docker containerization.
 
 ---
 
-**Built by Sahil Sharma**
+## 👤 Author & Acknowledgments
+
+- **Built by:** Sahil Sharma
+- **Data Source:** Joint Seat Allocation Authority ([josaa.nic.in](https://josaa.nic.in))
+- **License:** MIT License
+
+---
+
+## ⚖️ Legal Disclaimer
+
+*Vikalp provides statistical decision-support estimates based strictly on historical JoSAA counselling data (2021–2025). These estimates do not represent official allotment predictions or admission guarantees. Opening and closing cutoffs fluctuate every year due to exam difficulty, candidate preference shifts, and annual seat matrix revisions. Candidates must verify official cutoffs, seat matrices, and counselling rules at [josaa.nic.in](https://josaa.nic.in).*

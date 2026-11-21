@@ -95,3 +95,60 @@ def test_unreachable_warning_flag():
             assert w == ""
             if p >= 0.95:
                 has_certain = True
+
+
+def test_min_list_prob_floor_and_tier_constants():
+    """No option with P < MIN_LIST_PROB (0.05) must ever appear in the list."""
+    from src.optimize import DREAM_MAX_PROB, MIN_LIST_PROB, TARGET_MAX_PROB
+    from src.predict import label_risk
+
+    assert MIN_LIST_PROB == 0.05
+    assert DREAM_MAX_PROB == 0.30
+    assert TARGET_MAX_PROB == 0.80
+
+    # Test label_risk definitions
+    assert label_risk(0.04) == "Dream"
+    assert label_risk(0.05) == "Dream"
+    assert label_risk(0.299) == "Dream"
+    assert label_risk(0.30) == "Target"
+    assert label_risk(0.799) == "Target"
+    assert label_risk(0.80) == "Safe"
+    assert label_risk(0.99) == "Safe"
+
+    # Test build_list options are all >= MIN_LIST_PROB
+    student = StudentProfile(
+        main_rank=25000,
+        category="OPEN",
+        gender="Gender-Neutral",
+        home_state="Maharashtra",
+        list_size=50,
+    )
+    df = build_list(student)
+    assert not df.empty
+    assert (df["probability"] >= MIN_LIST_PROB).all(), f"Found options below {MIN_LIST_PROB}!"
+
+    # Verify every Dream option in the list satisfies 0.05 <= P < 0.30
+    dream_df = df[df["label"] == "Dream"]
+    if not dream_df.empty:
+        assert (dream_df["probability"] >= 0.05).all()
+        assert (dream_df["probability"] < 0.30).all()
+
+
+def test_exclude_architecture_and_planning():
+    """B.Arch and B.Planning use Paper 2 and must be excluded from choices (Naval Arch remains)."""
+    student = StudentProfile(
+        main_rank=15000,
+        category="OPEN",
+        gender="Gender-Neutral",
+        home_state="Delhi",
+        list_size=50,
+    )
+    df = build_list(student)
+    assert not df.empty
+    progs = df["program"].tolist()
+    for p in progs:
+        if "naval architecture" in p.lower():
+            continue  # Naval Architecture is standard B.Tech
+        assert "architecture" not in p.lower(), f"Unexpected architecture program found: {p}"
+        assert "planning" not in p.lower(), f"Unexpected planning program found: {p}"
+

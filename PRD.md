@@ -15,8 +15,8 @@ A web app that tells a JEE student which IIT / NIT / IIIT / GFTI seats they can 
 - **Secondary:** parents, school and coaching counsellors.
 
 ## Scope
-**In (v1):** JoSAA only. IIT, NIT, IIIT, GFTI. Final-round closing ranks for all years available (target 2021-2026). Predict the 2027 cycle.
-**Out (v1):** KCET / MHT-CET / NEET, Docker, FastAPI, login, Hindi UI, mobile app, paid tiers.
+**In (v1):** JoSAA only. IIT, NIT, IIIT, GFTI. Final-round closing ranks for all years available (target 2021-2026). Predict the 2027 cycle. Covers standard B.Tech, B.S., and Dual Degree engineering programs.
+**Out (v1):** B.Arch and B.Planning (use JEE Main Paper 2 ranks, not Paper 1 CRL), KCET / MHT-CET / NEET, Docker, FastAPI, login, Hindi UI, mobile app, paid tiers.
 
 ## User inputs
 - JEE Main CRL rank (for NIT / IIIT / GFTI)
@@ -30,9 +30,9 @@ A web app that tells a JEE student which IIT / NIT / IIIT / GFTI seats they can 
 
 ## Features
 **Must-have (MVP)**
-1. Admission probability for every eligible option (quota-aware)
-2. Dream / Target / Safe label
-3. Auto-built ordered choice list with a target risk mix (20% / 50% / 30%)
+1. Admission probability for every eligible option (quota-aware, with minimum probability floor $P \ge 0.05$)
+2. Dream ($0.05 \le P < 0.30$) / Target ($0.30 \le P < 0.80$) / Safe ($P \ge 0.80$) labels
+3. Auto-built ordered choice list with a target risk mix (20% / 50% / 30%); returns shorter list if fewer than $N$ options meet the 5% floor without padding sub-floor options
 4. Filters: branch, state, institute type
 5. Download choice list as CSV
 6. Visible disclaimer: "Estimate, not official. Verify at josaa.nic.in."

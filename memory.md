@@ -39,7 +39,7 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
 - [x] Feature 5: PDF export of the choice list (`src/pdf_report.py`, `tests/test_pdf.py`, in-memory `BytesIO` generation via ReportLab, print-friendly styling, repeated headers, `NumberedCanvas` "Page x of y", unreachable dagger footnote, methodology & disclaimer last page, Page 1 and Last Page rendered to PNG).
 
 ## Currently working on
-- Feature 5 completed, verified across 1, 50, and 100 choices, and rendered to PNG. Awaiting user OK.
+- v1.1 Ship complete. All QA checks passed, B.Arch/B.Plan excluded, 5% floor enforced, CI pipeline established, and 46/46 unit tests passing.
 
 ## Metrics (fill after Phase 4)
 | Model | MAE (log rank) | 80% prediction interval coverage |
@@ -84,4 +84,10 @@ Vikalp: Counselling Choice-List Optimizer (JoSAA). Author: Sahil Sharma. Deadlin
   - UI integration: Added "Download PDF Report" button right next to the CSV download button in `app/streamlit_app.py`.
   - Dev dependencies: Isolated `pypdf` and `pymupdf` in `requirements-dev.txt`.
   - 4 unit tests in `tests/test_pdf.py` verifying `%PDF` header, non-empty generation (<3 seconds) across 1, 50, and 100 choices, special characters escaping (`&`, `<`, quotes, long dash), extracted text validation (disclaimer, author, dagger footnote), and active what-if rank callouts.
-- **Test Suite Status:** 44/44 tests passing.
+- **Final Pass & Ship Prep:**
+  - **$\sigma$ Decision:** Maintained Option C ($\sigma = 0.2285$) based on held-out Brier score evaluations across 2024, 2025, and 2026.
+  - **B.Arch & B.Planning Exclusion:** Filtered out 1,305 Architecture and Planning options from `data/processed/cutoffs.parquet` and `src/clean.py` since they use JEE Main Paper 2 ranks. Added explanatory callouts in Streamlit UI and PDF report.
+  - **Minimum Probability Floor (`MIN_LIST_PROB = 0.05`):** Enforced strictly in `src/optimize.py` and `src/predict.py`. Redefined Dream tier to $0.05 \le P < 0.30$. If fewer than $N$ options qualify, the optimizer returns a shorter list with a clear UI message instead of padding with $<5\%$ choices.
+  - **CI Pipeline:** Added `.github/workflows/tests.yml` executing tests on Ubuntu Linux with Python 3.11.
+  - **Full Documentation:** Authored comprehensive `vikalp/README.md` and `vikalp/QA_REPORT.md`.
+- **Test Suite Status:** 46/46 tests passing.

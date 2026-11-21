@@ -340,6 +340,13 @@ def clean_single_year_file(file_path: Path) -> pd.DataFrame:
     # Normalize Names
     df["institute"] = df["Institute"].apply(normalize_institute_name)
     df["program"] = df["Academic Program Name"].apply(normalize_program_name)
+
+    # Exclude B.Arch and B.Planning (they use JEE Main Paper 2 ranks, not Paper 1 CRL)
+    is_arch_or_plan = (
+        df["program"].str.contains("Architecture|Planning", case=False, na=False)
+    ) & (~df["program"].str.contains("Naval Architecture", case=False, na=False))
+    df = df[~is_arch_or_plan].copy()
+
     df["quota"] = df["Quota"]
     df["seat_type"] = df["Seat Type"]
 

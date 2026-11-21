@@ -30,12 +30,15 @@ Project: Vikalp | Author: Sahil Sharma
 - OPEN seats use CRL; EWS / OBC-NCL / SC / ST seats use **category ranks**. Never compare a CRL against a category rank.
 - IIT seats use JEE Advanced ranks. NIT / IIIT / GFTI seats use JEE Main ranks. Keep these separate in the UI.
 - PwD seat types and quotas other than AI / HS / OS (GO, JK, LA) are out of scope for v1. Filter them out in `clean.py`.
+- B.Arch and B.Planning programs use JEE Main Paper 2 ranks, not Paper 1 CRL. Exclude programs whose name contains "Architecture" or "Planning" (except "Naval Architecture") from data and choice lists.
 - Normalize program names (strip text like "(4 Years, Bachelor of Technology)") and institute names consistently across years. Keep a rename map in `clean.py`.
 - Drop keys with fewer than 2 years of history from the model; for the app, show them as "insufficient history".
 
 ## Probability and list rules
-- Labels: **Dream** P < 0.30, **Target** 0.30 <= P < 0.80, **Safe** P >= 0.80.
+- Minimum list probability floor: `MIN_LIST_PROB = 0.05`. Options below 5% must never appear in the choice list.
+- Labels: **Dream** 0.05 <= P < 0.30, **Target** 0.30 <= P < 0.80, **Safe** P >= 0.80.
 - Target list mix: 20% Dream, 50% Target, 30% Safe.
+- If fewer than N options qualify (P >= 0.05), return a shorter list with a clear message instead of padding it with options below the 5% floor.
 - JoSAA allots the first option in your list that you qualify for, so anything placed after an option with P >= 0.95 is effectively unreachable. Warn or trim.
 - Never show a probability as exactly 0% or 100%. Clip to 1%-99%.
 

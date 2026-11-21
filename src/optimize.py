@@ -22,6 +22,21 @@ from src.predict import admit_probability, get_prediction_interval, label_risk
 
 DEFAULT_SIGMA = 0.2285  # Residual sigma calibrated from Phase 3 & 4
 UNREACHABLE_THRESHOLD = 0.95
+MIN_LIST_PROB = 0.05
+DREAM_MAX_PROB = 0.30
+TARGET_MAX_PROB = 0.80
+DEFAULT_CUTOFFS_PATH = (
+    Path(__file__).resolve().parent.parent / "data" / "processed" / "cutoffs.parquet"
+)
+
+
+def is_architecture_or_planning(program_series: pd.Series) -> pd.Series:
+    """Detect B.Arch and B.Planning programs that use JEE Main Paper 2 ranks."""
+    prog = program_series.astype(str)
+    is_arch_or_plan = prog.str.contains("Architecture|Planning", case=False, na=False)
+    # Naval Architecture is standard B.Tech engineering using Paper 1, not Paper 2
+    is_naval = prog.str.contains("Naval Architecture", case=False, na=False)
+    return is_arch_or_plan & (~is_naval)
 
 
 def compute_institute_prestige_scores(cutoffs_df: pd.DataFrame) -> Dict[str, float]:
@@ -55,6 +70,9 @@ def prepare_latest_options(cutoffs_df: pd.DataFrame) -> pd.DataFrame:
     # Use the most recent year's offerings as active choice catalog
     max_year = cutoffs_df["year"].max()
     latest = cutoffs_df[cutoffs_df["year"] == max_year].copy()
+
+    # Exclude B.Arch and B.Planning (they use JEE Main Paper 2 ranks, not Paper 1 CRL)
+    latest = latest[~is_architecture_or_planning(latest["program"])].copy()
 
     # Predict upcoming cycle cutoff using latest available years:
     # last year = closing_rank, 2 yrs ago = prev_closing_1, 3 yrs ago = prev_closing_2
@@ -123,9 +141,10 @@ def apply_risk_mix_balancing(
     scored_df: pd.DataFrame, list_size: int
 ) -> pd.DataFrame:
     """Enforce 20% Dream / 50% Target / 30% Safe target mix with backfilling."""
-    target_dream = int(round(0.20 * list_size))
-    target_target = int(round(0.50 * list_size))
-    target_safe = list_size - target_dream - target_target
+    actual_list_size = min(len(scored_df), list_size)
+    target_dream = int(round(0.20 * actual_list_size))
+    target_target = int(round(0.50 * actual_list_size))
+    target_safe = actual_list_size - target_dream - target_target
 
     dream_pool = scored_df[scored_df["label"] == "Dream"]
     target_pool = scored_df[scored_df["label"] == "Target"]
@@ -136,28 +155,38 @@ def apply_risk_mix_balancing(
     selected_target = target_pool.head(target_target)
     selected_safe = safe_pool.head(target_safe)
 
-    selected_indices = set(selected_dream.index) | set(selected_target.index) | set(selected_safe.index)
-    remaining_needed = list_size - len(selected_indices)
+    selected_indices = (
+        set(selected_dream.index)
+        | set(selected_target.index)
+        | set(selected_safe.index)
+    )
+    remaining_needed = actual_list_size - len(selected_indices)
 
     # Backfill if any pool had fewer options than its allocation
     if remaining_needed > 0:
         remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
         # Prefer backfilling Target, then Safe, then Dream
-        backfill_target = remaining_candidates[remaining_candidates["label"] == "Target"].head(remaining_needed)
+        backfill_target = remaining_candidates[
+            remaining_candidates["label"] == "Target"
+        ].head(remaining_needed)
         selected_target = pd.concat([selected_target, backfill_target])
         selected_indices.update(backfill_target.index)
-        remaining_needed = list_size - len(selected_indices)
+        remaining_needed = actual_list_size - len(selected_indices)
 
         if remaining_needed > 0:
             remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
-            backfill_safe = remaining_candidates[remaining_candidates["label"] == "Safe"].head(remaining_needed)
+            backfill_safe = remaining_candidates[
+                remaining_candidates["label"] == "Safe"
+            ].head(remaining_needed)
             selected_safe = pd.concat([selected_safe, backfill_safe])
             selected_indices.update(backfill_safe.index)
-            remaining_needed = list_size - len(selected_indices)
+            remaining_needed = actual_list_size - len(selected_indices)
 
         if remaining_needed > 0:
             remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
-            backfill_dream = remaining_candidates[remaining_candidates["label"] == "Dream"].head(remaining_needed)
+            backfill_dream = remaining_candidates[
+                remaining_candidates["label"] == "Dream"
+            ].head(remaining_needed)
             selected_dream = pd.concat([selected_dream, backfill_dream])
 
     # Assemble choice list in proper JoSAA strategic order: Dream -> Target -> Safe
@@ -187,8 +216,8 @@ def flag_unreachable_options(ordered_df: pd.DataFrame) -> pd.DataFrame:
 
 def build_list(
     student: Union[StudentProfile, dict],
-    cutoffs_path: Path = Path("data/processed/cutoffs.parquet"),
-    sigma: float = DEFAULT_SIGMA,
+    cutoffs_path: Optional[Union[Path, str]] = None,
+    sigma: Optional[float] = None,
 ) -> pd.DataFrame:
     """Build an optimized JoSAA choice list for a student profile."""
     if isinstance(student, dict):
@@ -196,10 +225,13 @@ def build_list(
     else:
         student_obj = student
 
-    if not cutoffs_path.exists():
-        raise FileNotFoundError(f"{cutoffs_path} not found. Run Phase 2 first.")
+    resolved_path = (
+        Path(cutoffs_path) if cutoffs_path is not None else DEFAULT_CUTOFFS_PATH
+    )
+    if not resolved_path.exists():
+        raise FileNotFoundError(f"{resolved_path} not found. Run Phase 2 first.")
 
-    cutoffs_df = pd.read_parquet(cutoffs_path)
+    cutoffs_df = pd.read_parquet(resolved_path)
     prestige_map = compute_institute_prestige_scores(cutoffs_df)
     active_options = prepare_latest_options(cutoffs_df)
 
@@ -209,14 +241,22 @@ def build_list(
         return pd.DataFrame()
 
     # 2. Compute probabilities and intervals
+    sigma_val = sigma if sigma is not None else DEFAULT_SIGMA
     eligible["probability"] = admit_probability(
         student_rank=eligible["effective_student_rank"].values,
         y_hat=eligible["y_hat"].values,
-        sigma=sigma,
+        sigma=sigma_val,
     )
+
+    # Enforce minimum probability floor (MIN_LIST_PROB = 0.05)
+    # Options below 5% must never appear in the choice list!
+    eligible = eligible[eligible["probability"] >= MIN_LIST_PROB].copy()
+    if eligible.empty:
+        return pd.DataFrame()
+
     eligible["label"] = [label_risk(p) for p in eligible["probability"]]
 
-    intervals = [get_prediction_interval(y, sigma) for y in eligible["y_hat"].values]
+    intervals = [get_prediction_interval(y, sigma_val) for y in eligible["y_hat"].values]
     eligible["predicted_closing_rank"] = [i[0] for i in intervals]
     eligible["predicted_range"] = [f"{i[1]:,} - {i[2]:,}" for i in intervals]
 

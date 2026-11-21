@@ -18,7 +18,7 @@ targets = [
 ]
 
 viewports = [
-    ("desktop", {"width": 1280, "height": 1050}),
+    ("desktop", {"width": 1280, "height": 1180}),
     ("mobile_390px", {"width": 390, "height": 844, "is_mobile": True}),
 ]
 

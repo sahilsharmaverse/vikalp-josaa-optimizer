@@ -375,28 +375,19 @@ def show_why_dialog(
     st.markdown(
         f"""
         <div class="formula-box">
-            <div style="font-weight: 700; color: #38BDF8; margin-bottom: 6px;">📐 Step-by-Step Probability Calculation</div>
-            <div>• <strong>Cutoff Comparison:</strong> {explanation['diff_text']}</div>
-            <div>• <strong>80% Prediction Interval:</strong> <code>{explanation['low_80']:,}</code> to <code>{explanation['high_80']:,}</code> (central 80% coverage: exp(y&#770; &plusmn; 1.28&sigma;)).</div>
-            <div>• <strong>Log-Space Deviation:</strong> In log space, ln(rank) = <code>{np.log(current_student_rank):.4f}</code> vs predicted y&#770; = <code>{row['y_hat']:.4f}</code> with calibrated uncertainty &sigma; = <code>{sigma:.4f}</code>.</div>
-            <div>• <strong>Standardized Score:</strong> <code>z = (ln(rank) - y&#770;) / &sigma; = ({np.log(current_student_rank):.4f} - {row['y_hat']:.4f}) / {sigma:.4f} = {explanation['z_score']:+.3f}</code>.</div>
-            <div>• <strong>Formula Applied:</strong> <code>P(admit) = 1 - &Phi;((ln(rank) - y&#770;) / &sigma;) = &Phi;(-z) = &Phi;({-explanation['z_score']:+.3f}) = {explanation['prob_pct']:.1f}%</code> (clipped to 1%–99%).</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    # Model metadata & official notice
-    st.markdown(
-        f"""
-        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: 12.5px; color: #94A3B8;">
-            <div style="margin-bottom: 4px;">
-                🤖 <strong>Model:</strong> {explanation['model_name']} &nbsp;|&nbsp; 
-                <strong>Measured Error:</strong> MAE = {explanation['mae']:.4f} in log-rank space (~14% error) &nbsp;|&nbsp; 
-                <strong>80% Coverage:</strong> {explanation['coverage_80_pct']:.1f}% on held-out validation.
+            <div style="font-weight: 700; color: #38BDF8; margin-bottom: 6px;">📐 Plain-Words Prediction Breakdown</div>
+            <div>• <strong>Cutoff & Range:</strong> Predicted closing rank is <strong>{explanation['pred_rank']:,}</strong> with an 80% prediction interval of <strong>{explanation['low_80']:,}</strong> to <strong>{explanation['high_80']:,}</strong>.</div>
+            <div>• <strong>Student Rank Position:</strong> {explanation['diff_text']}</div>
+            <div>• <strong>Standardized Distance (z-score):</strong> <code>z = (ln(rank) - y&#770;) / &sigma; = ({np.log(current_student_rank):.4f} - {row['y_hat']:.4f}) / {sigma:.4f} = {explanation['z_score']:+.3f}</code>.</div>
+            <div>• <strong>Resulting Probability:</strong> <code>P(admit) = 1 - &Phi;((ln(rank) - y&#770;) / &sigma;) = &Phi;(-z) = &Phi;({-explanation['z_score']:+.3f}) = {explanation['prob_pct']:.1f}%</code>.</div>
+            <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); color: #CBD5E1;">
+                • <strong>Model & Error:</strong> Typical error is <strong>MAE = {explanation['mae']:.4f}</strong> in log-rank space, predicted using the <strong>{explanation['model_name']}</strong>.
             </div>
-            <div>
-                ⚠️ <strong>Official Verification Reminder:</strong> Cutoffs change with seats added, JEE difficulty and policy. Verify at <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
+            <div style="margin-top: 4px; color: #94A3B8; font-size: 12.5px;">
+                • <strong>Category & Quota:</strong> This cutoff belongs to <strong>{row['quota']}</strong> quota and <strong>{row['seat_type']}</strong> seat type ({row['gender']}).
+            </div>
+            <div style="margin-top: 6px; font-size: 12px; color: #F59E0B;">
+                ⚠️ <strong>Note:</strong> Cutoffs change with seats added, JEE difficulty and policy. Verify at <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
             </div>
         </div>
         """,
@@ -1032,17 +1023,19 @@ explanation = compute_prediction_explanation(
 st.markdown(
     f"""
     <div class="formula-box">
-        <div style="font-weight: 700; color: #38BDF8; margin-bottom: 6px;">📐 Plain-Words Prediction & Formula Breakdown</div>
-        <div>• <strong>Cutoff Comparison:</strong> {explanation['diff_text']}</div>
-        <div>• <strong>80% Prediction Interval:</strong> <code>{explanation['low_80']:,}</code> to <code>{explanation['high_80']:,}</code> (central 80% coverage: exp(y&#770; &plusmn; 1.28&sigma;)).</div>
-        <div>• <strong>Log-Space Deviation:</strong> ln(rank) = <code>{np.log(current_student_rank):.4f}</code> vs predicted y&#770; = <code>{selected_row['y_hat']:.4f}</code> with calibrated uncertainty &sigma; = <code>{model_sigma:.4f}</code>.</div>
-        <div>• <strong>Standardized Distance:</strong> <code>z = (ln(rank) - y&#770;) / &sigma; = ({np.log(current_student_rank):.4f} - {selected_row['y_hat']:.4f}) / {model_sigma:.4f} = {explanation['z_score']:+.3f}</code>.</div>
-        <div>• <strong>Formula Applied:</strong> <code>P(admit) = 1 - &Phi;((ln(rank) - y&#770;) / &sigma;) = &Phi;(-z) = &Phi;({-explanation['z_score']:+.3f}) = {explanation['prob_pct']:.1f}%</code> (clipped to 1%–99%).</div>
-        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.08); font-size: 12.5px; color: #94A3B8;">
-            🤖 <strong>Model:</strong> {explanation['model_name']} &nbsp;|&nbsp; 
-            <strong>Measured Validation Error:</strong> MAE = {explanation['mae']:.4f} in log-rank space &nbsp;|&nbsp; 
-            <strong>80% Coverage:</strong> {explanation['coverage_80_pct']:.1f}%.<br>
-            ⚠️ <strong>Reminder:</strong> Cutoffs change with seats added, JEE difficulty and policy. Verify at <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
+        <div style="font-weight: 700; color: #38BDF8; margin-bottom: 6px;">📐 Plain-Words Prediction Breakdown</div>
+        <div>• <strong>Cutoff & Range:</strong> Predicted closing rank is <strong>{explanation['pred_rank']:,}</strong> with an 80% prediction interval of <strong>{explanation['low_80']:,}</strong> to <strong>{explanation['high_80']:,}</strong>.</div>
+        <div>• <strong>Student Rank Position:</strong> {explanation['diff_text']}</div>
+        <div>• <strong>Standardized Distance (z-score):</strong> <code>z = (ln(rank) - y&#770;) / &sigma; = ({np.log(current_student_rank):.4f} - {selected_row['y_hat']:.4f}) / {model_sigma:.4f} = {explanation['z_score']:+.3f}</code>.</div>
+        <div>• <strong>Resulting Probability:</strong> <code>P(admit) = 1 - &Phi;((ln(rank) - y&#770;) / &sigma;) = &Phi;(-z) = &Phi;({-explanation['z_score']:+.3f}) = {explanation['prob_pct']:.1f}%</code>.</div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255, 255, 255, 0.1); color: #CBD5E1;">
+            • <strong>Model & Error:</strong> Typical error is <strong>MAE = {explanation['mae']:.4f}</strong> in log-rank space, predicted using the <strong>{explanation['model_name']}</strong>.
+        </div>
+        <div style="margin-top: 4px; color: #94A3B8; font-size: 12.5px;">
+            • <strong>Category & Quota:</strong> This cutoff belongs to <strong>{selected_row['quota']}</strong> quota and <strong>{selected_row['seat_type']}</strong> seat type ({selected_row['gender']}).
+        </div>
+        <div style="margin-top: 6px; font-size: 12px; color: #F59E0B;">
+            ⚠️ <strong>Note:</strong> Cutoffs change with seats added, JEE difficulty and policy. Verify at <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
         </div>
     </div>
     """,

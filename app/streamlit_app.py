@@ -525,7 +525,7 @@ with st.sidebar:
         default=["CSE", "ECE"],
         help="Leave empty to consider all branches.",
     )
-    st.caption("ℹ️ B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.")
+    st.caption("ℹ️ B.Arch, B.Planning, and B.Des use separate entrance ranks and are not included in v1.")
 
     institute_types = st.multiselect(
         "Institute Types",
@@ -844,6 +844,13 @@ with col3:
     )
 
 st.markdown("<br>", unsafe_allow_html=True)
+
+# Low safe options warning (< 5 Safe options)
+active_safe_count = new_safe_count if rank_shift_pct != 0 else base_safe_count
+if active_safe_count < 5:
+    st.warning(
+        "⚠️ **Your list has few or no safe options. Add more branches, institute types or states so you have a fallback.**"
+    )
 
 # Table display preparation
 display_df = rescored_df.copy()
@@ -1360,7 +1367,7 @@ with st.expander("ℹ️ How Vikalp Works"):
         - **Quota & Category Precision**: Evaluates All India (AI), Home State (HS), and Other State (OS) quotas accurately based on your 12th schooling state. OPEN seats are evaluated with CRL, while category seats use category ranks.
         - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual standard error read directly from calibrated model metrics.
         - **Strategic Risk Balance**: Constructs a balanced list with **20% Dream** ($5\\% \\le P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$) options. Choices with $P < 5\\%$ are strictly filtered out to ensure every choice is viable.
-        - **Program Scope**: Covers all B.Tech, B.S., and Dual Degree engineering programs. B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.
+        - **Program Scope**: Covers all B.Tech, B.S., and Dual Degree engineering programs. B.Arch, B.Planning, and B.Des use separate entrance ranks and are not included in v1.
         - **Portfolio Admission Chance**: Estimates the probability of securing at least one seat across your entire list via a 2,000-run Monte Carlo simulation modeling correlated exam/counselling shocks ($\rho = 0.5$).
         - **Unreachable Choice Detection**: Highlights choices ordered after a near-certain option ($P \\ge 95\\%$) to protect you from wasted choices.
         """

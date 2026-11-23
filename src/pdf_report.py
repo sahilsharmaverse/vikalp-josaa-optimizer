@@ -298,7 +298,7 @@ def build_pdf_report(
     if active_rank is None:
         active_rank = (
             student_profile.main_rank
-            if student_profile.main_rank > 0
+            if student_profile.main_rank and student_profile.main_rank > 0
             else student_profile.adv_rank
         )
         if (
@@ -318,12 +318,12 @@ def build_pdf_report(
     # 2. Student Profile Table (White background, light border)
     crl_str = (
         f"{student_profile.main_rank:,}"
-        if student_profile.main_rank > 0
+        if student_profile.main_rank and student_profile.main_rank > 0
         else "Not entered"
     )
     adv_str = (
         f"{student_profile.adv_rank:,}"
-        if student_profile.adv_rank > 0
+        if student_profile.adv_rank and student_profile.adv_rank > 0
         else "Not entered"
     )
     cat_rank_str = (
@@ -388,7 +388,7 @@ def build_pdf_report(
     story.append(profile_table)
     story.append(
         Paragraph(
-            "<font size='7' color='#64748B'>* Note: B.Arch and B.Planning use JEE Main Paper 2 ranks and are not included in v1.</font>",
+            "<font size='7' color='#64748B'>* Note: B.Arch, B.Planning, and B.Des use separate entrance ranks and are not included in v1.</font>",
             style_body,
         )
     )
@@ -464,7 +464,37 @@ def build_pdf_report(
         )
     )
     story.append(summary_table)
-    story.append(Spacer(1, 10))
+
+    # Low safe options warning (< 5 Safe options)
+    if safe_count < 5:
+        story.append(Spacer(1, 4))
+        style_safe_warning = ParagraphStyle(
+            "SafeWarningText",
+            parent=styles["Normal"],
+            fontName="Helvetica-Bold",
+            fontSize=8,
+            leading=11,
+            textColor=colors.HexColor("#991B1B"),
+        )
+        warning_table = Table(
+            [[Paragraph("⚠️ WARNING: Your list has few or no safe options. Add more branches, institute types or states so you have a fallback.", style_safe_warning)]],
+            colWidths=[540],
+        )
+        warning_table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FEE2E2")),
+                    ("BOX", (0, 0), (-1, -1), 1, colors.HexColor("#EF4444")),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ]
+            )
+        )
+        story.append(warning_table)
+
+    story.append(Spacer(1, 8))
 
     # 4. Choice List Table
     story.append(

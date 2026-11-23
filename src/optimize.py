@@ -31,12 +31,16 @@ DEFAULT_CUTOFFS_PATH = (
 
 
 def is_architecture_or_planning(program_series: pd.Series) -> pd.Series:
-    """Detect B.Arch and B.Planning programs that use JEE Main Paper 2 ranks."""
+    """Detect B.Arch, B.Planning, and B.Des programs that do not use JEE Main Paper 1 CRL."""
     prog = program_series.astype(str)
     is_arch_or_plan = prog.str.contains("Architecture|Planning", case=False, na=False)
     # Naval Architecture is standard B.Tech engineering using Paper 1, not Paper 2
     is_naval = prog.str.contains("Naval Architecture", case=False, na=False)
-    return is_arch_or_plan & (~is_naval)
+    # Bachelor of Design / B.Des uses separate aptitude / UCEED evaluation
+    is_bdes = (
+        prog.str.strip().str.lower() == "bachelor of design"
+    ) | prog.str.contains(r"\b(?:b\.?des|bachelor of design)\b", case=False, na=False)
+    return (is_arch_or_plan & (~is_naval)) | is_bdes
 
 
 def compute_institute_prestige_scores(cutoffs_df: pd.DataFrame) -> Dict[str, float]:
@@ -140,32 +144,44 @@ def score_preference(
 def apply_risk_mix_balancing(
     scored_df: pd.DataFrame, list_size: int
 ) -> pd.DataFrame:
-    """Enforce 20% Dream / 50% Target / 30% Safe target mix with backfilling."""
+    """Enforce 20% Dream / 50% Target / 30% Safe target mix.
+
+    Safe and Target slots are reserved first (30% and 50%) and Dream fills the rest,
+    so Dream can never crowd out Safe. If fewer Safe options exist than the quota,
+    fill from the next tier (Target, then Dream).
+    """
     actual_list_size = min(len(scored_df), list_size)
-    target_dream = int(round(0.20 * actual_list_size))
+    target_safe = int(round(0.30 * actual_list_size))
     target_target = int(round(0.50 * actual_list_size))
-    target_safe = actual_list_size - target_dream - target_target
+    target_dream = actual_list_size - target_safe - target_target
 
-    dream_pool = scored_df[scored_df["label"] == "Dream"]
-    target_pool = scored_df[scored_df["label"] == "Target"]
     safe_pool = scored_df[scored_df["label"] == "Safe"]
+    target_pool = scored_df[scored_df["label"] == "Target"]
+    dream_pool = scored_df[scored_df["label"] == "Dream"]
 
-    # Initial selection
-    selected_dream = dream_pool.head(target_dream)
-    selected_target = target_pool.head(target_target)
+    # 1. Reserve Safe first (30%)
     selected_safe = safe_pool.head(target_safe)
+    safe_deficit = target_safe - len(selected_safe)
 
+    # 2. Reserve Target second (50% + Safe deficit filled from next tier)
+    needed_target = target_target + max(0, safe_deficit)
+    selected_target = target_pool.head(needed_target)
+    target_deficit = needed_target - len(selected_target)
+
+    # 3. Dream fills the rest (20% + any deficit from Safe/Target)
+    needed_dream = target_dream + max(0, target_deficit)
+    selected_dream = dream_pool.head(needed_dream)
+
+    # 4. If list is still not full (e.g. Dream had fewer options), backfill from remaining Target, then Safe
     selected_indices = (
-        set(selected_dream.index)
+        set(selected_safe.index)
         | set(selected_target.index)
-        | set(selected_safe.index)
+        | set(selected_dream.index)
     )
     remaining_needed = actual_list_size - len(selected_indices)
 
-    # Backfill if any pool had fewer options than its allocation
     if remaining_needed > 0:
         remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
-        # Prefer backfilling Target, then Safe, then Dream
         backfill_target = remaining_candidates[
             remaining_candidates["label"] == "Target"
         ].head(remaining_needed)
@@ -173,21 +189,14 @@ def apply_risk_mix_balancing(
         selected_indices.update(backfill_target.index)
         remaining_needed = actual_list_size - len(selected_indices)
 
-        if remaining_needed > 0:
-            remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
-            backfill_safe = remaining_candidates[
-                remaining_candidates["label"] == "Safe"
-            ].head(remaining_needed)
-            selected_safe = pd.concat([selected_safe, backfill_safe])
-            selected_indices.update(backfill_safe.index)
-            remaining_needed = actual_list_size - len(selected_indices)
-
-        if remaining_needed > 0:
-            remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
-            backfill_dream = remaining_candidates[
-                remaining_candidates["label"] == "Dream"
-            ].head(remaining_needed)
-            selected_dream = pd.concat([selected_dream, backfill_dream])
+    if remaining_needed > 0:
+        remaining_candidates = scored_df[~scored_df.index.isin(selected_indices)]
+        backfill_safe = remaining_candidates[
+            remaining_candidates["label"] == "Safe"
+        ].head(remaining_needed)
+        selected_safe = pd.concat([selected_safe, backfill_safe])
+        selected_indices.update(backfill_safe.index)
+        remaining_needed = actual_list_size - len(selected_indices)
 
     # Assemble choice list in proper JoSAA strategic order: Dream -> Target -> Safe
     ordered_list = pd.concat([selected_dream, selected_target, selected_safe]).reset_index(drop=True)
@@ -246,6 +255,17 @@ def build_list(
         student_rank=eligible["effective_student_rank"].values,
         y_hat=eligible["y_hat"].values,
         sigma=sigma_val,
+    )
+
+    # Deduplicate: preserve distinct seat pools (quota, seat_type, gender) while dropping true duplicate records.
+    # If duplicate records exist, keep the row with the higher probability.
+    eligible = (
+        eligible.sort_values(by="probability", ascending=False)
+        .drop_duplicates(
+            subset=["institute", "program", "quota", "seat_type", "gender"],
+            keep="first",
+        )
+        .reset_index(drop=True)
     )
 
     # Enforce minimum probability floor (MIN_LIST_PROB = 0.05)

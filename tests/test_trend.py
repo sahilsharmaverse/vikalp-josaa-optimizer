@@ -127,11 +127,12 @@ def test_probability_consistency_with_choice_list():
         y_hat = float(row["y_hat"])
         expected_prob = float(row["probability"])
 
+        row_sigma = float(row["sigma_used"]) if "sigma_used" in row else sigma
         # Compute via compute_prediction_explanation
         explanation = compute_prediction_explanation(
             student_rank=student_rank,
             y_hat=y_hat,
-            sigma=sigma,
+            sigma=row_sigma,
             metrics=metrics,
         )
 
@@ -146,10 +147,11 @@ def test_probability_consistency_with_choice_list():
         y_hat = float(row["y_hat"])
         expected_shifted_prob = float(row["shifted_probability"])
 
+        row_sigma = float(row["sigma_used"]) if "sigma_used" in row else sigma
         explanation_shifted = compute_prediction_explanation(
             student_rank=shifted_rank,
             y_hat=y_hat,
-            sigma=sigma,
+            sigma=row_sigma,
             metrics=metrics,
         )
         assert np.isclose(explanation_shifted["prob"], expected_shifted_prob, atol=1e-6)

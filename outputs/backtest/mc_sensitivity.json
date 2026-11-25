@@ -1,0 +1,31 @@
+{
+  "rho_sensitivity": [
+    {
+      "rho": 0.0,
+      "correlation_assumption": "Independent",
+      "estimated_admission_prob": 1.0
+    },
+    {
+      "rho": 0.3,
+      "correlation_assumption": "Moderate",
+      "estimated_admission_prob": 0.998
+    },
+    {
+      "rho": 0.5,
+      "correlation_assumption": "Baseline (50%)",
+      "estimated_admission_prob": 0.9845
+    },
+    {
+      "rho": 0.8,
+      "correlation_assumption": "High",
+      "estimated_admission_prob": 0.946
+    }
+  ],
+  "convergence": {
+    "p_2000": 0.9845,
+    "p_20000": 0.98775,
+    "delta": 0.003249999999999975,
+    "time_2000_ms": 0.8663999997224892,
+    "time_20000_ms": 19.78179999969143
+  }
+}

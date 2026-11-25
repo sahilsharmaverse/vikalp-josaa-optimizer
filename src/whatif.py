@@ -95,11 +95,16 @@ def rescore_choice_list(
     shifted_ranks = [shift_rank(int(r), pct) for r in rescored["student_rank"].values]
     rescored["shifted_rank"] = shifted_ranks
 
-    # Recalculate probabilities
+    # Recalculate probabilities using option-specific sigma if present
+    if "sigma_used" in rescored.columns:
+        effective_sigma = rescored["sigma_used"].values
+    else:
+        effective_sigma = sigma if sigma is not None else get_model_sigma()
+
     new_probs = admit_probability(
         student_rank=np.array(shifted_ranks, dtype=float),
         y_hat=rescored["y_hat"].values,
-        sigma=sigma,
+        sigma=effective_sigma,
     )
     rescored["shifted_probability"] = new_probs
 

@@ -46,7 +46,8 @@ def admit_probability(
     float or np.ndarray
         Admission probability clipped to [0.01, 0.99].
     """
-    if sigma <= 0:
+    sigma_arr = np.asarray(sigma, dtype=float)
+    if np.any(sigma_arr <= 0):
         raise ValueError(f"sigma must be strictly positive, got {sigma}")
 
     rank_arr = np.asarray(student_rank, dtype=float)

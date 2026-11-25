@@ -19,8 +19,10 @@ import pandas as pd
 from src.baseline import compute_weighted_log_trend
 from src.eligibility import StudentProfile, filter_eligible_options
 from src.predict import admit_probability, get_prediction_interval, label_risk
+from src.simulation import get_model_sigma
 
-DEFAULT_SIGMA = 0.2285  # Residual sigma calibrated from Phase 3 & 4
+DEFAULT_SIGMA = get_model_sigma(default=0.2164)  # Calibrated residual sigma on held-out 2025
+DEFAULT_SIGMA_SPARSE = 0.2569  # Wider uncertainty (+24.8%) for programs with < 3 years history
 UNREACHABLE_THRESHOLD = 0.95
 MIN_LIST_PROB = 0.05
 DREAM_MAX_PROB = 0.30
@@ -255,13 +257,22 @@ def build_list(
     if eligible.empty:
         return pd.DataFrame()
 
-    # 2. Compute probabilities and intervals
-    sigma_val = sigma if sigma is not None else DEFAULT_SIGMA
+    # 2. Compute probabilities and intervals with dynamic sigma for sparse history
+    if "years_of_history" in eligible.columns:
+        sigmas = np.where(
+            eligible["years_of_history"] < 3,
+            DEFAULT_SIGMA_SPARSE if sigma is None else sigma * (DEFAULT_SIGMA_SPARSE / DEFAULT_SIGMA),
+            DEFAULT_SIGMA if sigma is None else sigma,
+        )
+    else:
+        sigmas = sigma if sigma is not None else DEFAULT_SIGMA
+
     eligible["probability"] = admit_probability(
         student_rank=eligible["effective_student_rank"].values,
         y_hat=eligible["y_hat"].values,
-        sigma=sigma_val,
+        sigma=sigmas,
     )
+    eligible["sigma_used"] = sigmas
 
     # JoSAA Rule: In JoSAA, a candidate's choice is strictly (institute, program).
     # All eligible pools (Quota: HS/OS/AI, Gender: Gender-Neutral/Female-only, Seat Type: OPEN/Category)
@@ -283,7 +294,10 @@ def build_list(
 
     eligible["label"] = [label_risk(p) for p in eligible["probability"]]
 
-    intervals = [get_prediction_interval(y, sigma_val) for y in eligible["y_hat"].values]
+    intervals = [
+        get_prediction_interval(y, s)
+        for y, s in zip(eligible["y_hat"].values, eligible["sigma_used"].values)
+    ]
     eligible["predicted_closing_rank"] = [i[0] for i in intervals]
     eligible["predicted_range"] = [f"{i[1]:,} - {i[2]:,}" for i in intervals]
 
@@ -311,6 +325,7 @@ def build_list(
         "gender",
         "student_rank",
         "y_hat",
+        "sigma_used",
         "probability",
         "label",
         "predicted_closing_rank",

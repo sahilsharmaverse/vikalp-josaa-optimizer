@@ -20,6 +20,7 @@ from src.baseline import compute_weighted_log_trend
 from src.eligibility import StudentProfile, filter_eligible_options
 from src.predict import admit_probability, get_prediction_interval, label_risk
 from src.simulation import get_model_sigma
+from src.validate import validate_cutoff_dataset
 
 DEFAULT_SIGMA = get_model_sigma(default=0.2164)  # Calibrated residual sigma on held-out 2025
 DEFAULT_SIGMA_SPARSE = 0.2569  # Wider uncertainty (+24.8%) for programs with < 3 years history
@@ -282,6 +283,8 @@ def build_list(
     else:
         student_obj = student
 
+    student_obj.validate()
+
     if student_obj.round_type.lower() != "final":
         raise ValueError(
             f"Unsupported round_type '{student_obj.round_type}'. Vikalp uses official JoSAA final-round cutoffs "
@@ -295,6 +298,7 @@ def build_list(
         raise FileNotFoundError(f"{resolved_path} not found. Run Phase 2 first.")
 
     cutoffs_df = pd.read_parquet(resolved_path)
+    validate_cutoff_dataset(cutoffs_df)
     prestige_map = compute_institute_prestige_scores(cutoffs_df)
     active_options = prepare_latest_options(cutoffs_df)
 

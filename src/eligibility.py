@@ -32,6 +32,29 @@ class StudentProfile:
     round_type: str = "final"                 # Cutoff round: "final" (default, terminal round)
     ordering_strategy: str = "strategic"      # "strategic" (Dream->Target->Safe) or "preference" (strict student priority)
 
+    def validate(self) -> None:
+        """Validate student profile parameters, raising descriptive ValueError if invalid."""
+        has_main = self.main_rank is not None and self.main_rank > 0
+        has_adv = self.adv_rank is not None and self.adv_rank > 0
+        if not (has_main or has_adv):
+            raise ValueError(
+                "At least one valid positive rank must be provided (JEE Main CRL or JEE Advanced rank > 0)."
+            )
+        if self.main_rank is not None and self.main_rank <= 0:
+            raise ValueError(f"Invalid main_rank: {self.main_rank}. Rank must be a positive integer.")
+        if self.adv_rank is not None and self.adv_rank <= 0:
+            raise ValueError(f"Invalid adv_rank: {self.adv_rank}. Rank must be a positive integer.")
+        if self.category_rank is not None and self.category_rank <= 0:
+            raise ValueError(f"Invalid category_rank: {self.category_rank}. Category rank must be a positive integer.")
+        if self.list_size <= 0:
+            raise ValueError(f"Invalid list_size: {self.list_size}. List size must be a positive integer.")
+        valid_modes = {"college-first", "branch-first"}
+        if self.priority_mode.lower() not in valid_modes:
+            raise ValueError(f"Invalid priority_mode '{self.priority_mode}'. Must be one of {valid_modes}.")
+        valid_strategies = {"strategic", "preference"}
+        if self.ordering_strategy.lower() not in valid_strategies:
+            raise ValueError(f"Invalid ordering_strategy '{self.ordering_strategy}'. Must be one of {valid_strategies}.")
+
 
 def is_quota_eligible(quota: str, inst_state: str, home_state: str) -> bool:
     """Check quota eligibility for an institute and student home state."""

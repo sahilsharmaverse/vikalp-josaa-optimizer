@@ -144,13 +144,25 @@ def score_preference(
 
 
 def apply_risk_mix_balancing(
-    scored_df: pd.DataFrame, list_size: int
+    scored_df: pd.DataFrame,
+    list_size: int,
+    ordering_strategy: str = "strategic",
 ) -> pd.DataFrame:
     """Enforce 20% Dream / 50% Target / 30% Safe target mix.
 
     Safe and Target slots are reserved first (30% and 50%) and Dream fills the rest,
     so Dream can never crowd out Safe. If fewer Safe options exist than the quota,
     fill from the next tier (Target, then Dream).
+
+    Parameters
+    ----------
+    scored_df : pd.DataFrame
+        Candidate options sorted by preference score.
+    list_size : int
+        Desired number of choices.
+    ordering_strategy : str, default "strategic"
+        "strategic" orders Dream -> Target -> Safe (JoSAA strategic tiers).
+        "preference" preserves strict student preference rank order across all selections.
     """
     actual_list_size = min(len(scored_df), list_size)
     target_safe = int(round(0.30 * actual_list_size))
@@ -200,9 +212,43 @@ def apply_risk_mix_balancing(
         selected_indices.update(backfill_safe.index)
         remaining_needed = actual_list_size - len(selected_indices)
 
-    # Assemble choice list in proper JoSAA strategic order: Dream -> Target -> Safe
-    ordered_list = pd.concat([selected_dream, selected_target, selected_safe]).reset_index(drop=True)
+    # Assemble choice list per requested ordering semantics
+    if ordering_strategy.lower() == "preference":
+        # Strict student preference order
+        all_selected = pd.concat([selected_dream, selected_target, selected_safe])
+        ordered_list = all_selected.sort_index().reset_index(drop=True)
+    else:
+        # Strategic JoSAA allocation order: Reach/Dream -> Target -> Safe
+        ordered_list = pd.concat([selected_dream, selected_target, selected_safe]).reset_index(drop=True)
+
     return ordered_list
+
+
+def diagnose_portfolio_risk(ordered_df: pd.DataFrame, target_size: int) -> dict:
+    """Diagnose portfolio safety, quantify scarcity, and generate actionable alternatives."""
+    counts = ordered_df["label"].value_counts().to_dict() if not ordered_df.empty else {}
+    safe_cnt = counts.get("Safe", 0)
+    target_cnt = counts.get("Target", 0)
+    dream_cnt = counts.get("Dream", 0)
+    total_cnt = len(ordered_df)
+
+    ideal_safe = int(round(0.30 * total_cnt)) if total_cnt > 0 else 0
+    safe_is_scarce = safe_cnt < 5 or (ideal_safe > 0 and safe_cnt < ideal_safe)
+
+    alternatives = []
+    if safe_is_scarce:
+        alternatives.append("Branch Alternative: Add allied engineering branches (e.g. Electrical, Mechanical, Chemical, Civil) to secure realistic fallback options.")
+        alternatives.append("Institute Alternative: Add accredited GFTIs (e.g. BIT Mesra, Assam University, SLIET, Bilaspur) or newer IIITs with cutoffs extending to CRL 80,000-150,000.")
+        alternatives.append("Exam/Counselling Alternative: Register for state engineering counsellings (JAC Delhi, MHT-CET, WBJEE, COMEDK) and plan for post-JoSAA CSAB Special Rounds.")
+
+    return {
+        "total_choices": total_cnt,
+        "target_size": target_size,
+        "counts": {"Dream": dream_cnt, "Target": target_cnt, "Safe": safe_cnt},
+        "safe_scarcity": safe_is_scarce,
+        "scarcity_warning": "⚠️ Your list has few or no safe options. Add more branches, institute types or states so you have a fallback." if safe_is_scarce else "",
+        "alternatives": alternatives,
+    }
 
 
 def flag_unreachable_options(ordered_df: pd.DataFrame) -> pd.DataFrame:
@@ -304,8 +350,9 @@ def build_list(
     # 3. Score by student priority preference (College-first vs Branch-first)
     scored = score_preference(eligible, student_obj, prestige_map)
 
-    # 4. Enforce 20/50/30 Dream/Target/Safe mix
-    balanced = apply_risk_mix_balancing(scored, student_obj.list_size)
+    # 4. Enforce adaptive risk mix
+    ordering_strat = getattr(student_obj, "ordering_strategy", "strategic")
+    balanced = apply_risk_mix_balancing(scored, student_obj.list_size, ordering_strat)
 
     # 5. Check and flag unreachable choices
     final_list = flag_unreachable_options(balanced)
@@ -332,4 +379,6 @@ def build_list(
         "predicted_range",
         "warning",
     ]
-    return final_list[output_cols]
+    res = final_list[output_cols].copy()
+    res.attrs["portfolio_diagnosis"] = diagnose_portfolio_risk(res, student_obj.list_size)
+    return res

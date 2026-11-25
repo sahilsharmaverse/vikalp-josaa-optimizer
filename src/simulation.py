@@ -119,3 +119,103 @@ def simulate_at_least_one_seat_probability(
 
     prob = float(np.mean(any_admitted_per_sim))
     return prob
+
+
+def compute_expected_outcome_quality(
+    choice_df: pd.DataFrame,
+    sigma: Optional[float] = None,
+    rho: float = 0.5,
+    n_sims: int = 2000,
+    seed: int = 42,
+) -> dict:
+    """Calculate expected outcome quality under JoSAA serial allocation semantics.
+
+    JoSAA evaluates choices strictly from Choice #1 to #K. The applicant is allotted
+    the FIRST choice for which student_rank <= simulated_closing_rank.
+
+    Parameters
+    ----------
+    choice_df : pd.DataFrame
+        Ordered choice list containing 'student_rank', 'y_hat', and 'predicted_closing_rank'.
+    sigma : float, optional
+        Residual standard deviation in log space.
+    rho : float, default 0.5
+        Shock correlation coefficient.
+    n_sims : int, default 2000
+        Number of simulations.
+    seed : int, default 42
+        Simulation random seed.
+
+    Returns
+    -------
+    dict
+        Dictionary with admission probability, expected allotted choice number,
+        expected admitted closing rank, top-choice probability, and top-3 probability.
+    """
+    if choice_df.empty:
+        return {
+            "admission_prob": 0.0,
+            "expected_choice_no": None,
+            "expected_closing_rank": None,
+            "top_choice_prob": 0.0,
+            "top_3_prob": 0.0,
+            "allotted_sims_count": 0,
+        }
+
+    ranks = np.asarray(choice_df["student_rank"].values, dtype=float)
+    y_hat_arr = np.asarray(choice_df["y_hat"].values, dtype=float)
+    pred_ranks = np.asarray(choice_df["predicted_closing_rank"].values, dtype=float)
+
+    if sigma is None:
+        sigma = get_model_sigma()
+
+    n_options = len(ranks)
+    rng = np.random.default_rng(seed)
+
+    # Correlated shocks
+    s = rng.standard_normal((n_sims, 1))
+    e = rng.standard_normal((n_sims, n_options))
+    z = np.sqrt(rho) * s + np.sqrt(1.0 - rho) * e
+
+    sim_closing = np.exp(y_hat_arr[np.newaxis, :] + sigma * z)
+    admitted_matrix = ranks[np.newaxis, :] <= sim_closing
+
+    any_admitted = np.any(admitted_matrix, axis=1)
+    allotted_count = int(np.sum(any_admitted))
+
+    if allotted_count == 0:
+        return {
+            "admission_prob": 0.0,
+            "expected_choice_no": None,
+            "expected_closing_rank": None,
+            "top_choice_prob": 0.0,
+            "top_3_prob": 0.0,
+            "allotted_sims_count": 0,
+        }
+
+    # First choice that qualified per simulation
+    first_choice_indices = np.argmax(admitted_matrix[any_admitted], axis=1)
+    allotted_choice_numbers = first_choice_indices + 1
+    allotted_cutoffs = pred_ranks[first_choice_indices]
+
+    expected_choice_no = float(np.mean(allotted_choice_numbers))
+    expected_closing_rank = float(np.mean(allotted_cutoffs))
+
+    # Top choice (Choice #1) allotted rate
+    top_choice_count = np.sum(first_choice_indices == 0)
+    top_choice_prob = float(top_choice_count / n_sims)
+
+    # Top 3 choices allotted rate
+    top_3_count = np.sum(first_choice_indices < min(3, n_options))
+    top_3_prob = float(top_3_count / n_sims)
+
+    admission_prob = float(allotted_count / n_sims)
+
+    return {
+        "admission_prob": admission_prob,
+        "expected_choice_no": round(expected_choice_no, 1),
+        "expected_closing_rank": int(round(expected_closing_rank)),
+        "top_choice_prob": round(top_choice_prob, 3),
+        "top_3_prob": round(top_3_prob, 3),
+        "allotted_sims_count": allotted_count,
+    }

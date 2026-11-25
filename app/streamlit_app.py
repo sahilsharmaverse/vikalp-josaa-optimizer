@@ -38,6 +38,7 @@ from src.simulation import (
     get_model_metrics,
     get_model_sigma,
     simulate_at_least_one_seat_probability,
+    compute_expected_outcome_quality,
 )
 from src.trend import (
     TREND_GETTING_EASIER,
@@ -850,6 +851,20 @@ active_safe_count = new_safe_count if rank_shift_pct != 0 else base_safe_count
 if active_safe_count < 5:
     st.warning(
         "⚠️ **Your list has few or no safe options. Add more branches, institute types or states so you have a fallback.**"
+    )
+    diag = df_list.attrs.get("portfolio_diagnosis")
+    if diag and diag.get("alternatives"):
+        with st.expander("💡 Recommended Alternatives & Strategic Fallbacks", expanded=True):
+            for alt in diag["alternatives"]:
+                st.markdown(f"- {alt}")
+
+# Expected outcome quality metric under JoSAA serial allocation
+outcome_quality = compute_expected_outcome_quality(rescored_df, sigma=model_sigma, rho=0.5, n_sims=2000, seed=42)
+if outcome_quality["expected_choice_no"] is not None:
+    st.caption(
+        f"🎯 **Expected Outcome Quality:** Under JoSAA serial allotment, your simulated expected allotment is **Choice #{outcome_quality['expected_choice_no']}** "
+        f"(closing rank ~{outcome_quality['expected_closing_rank']:,}). "
+        f"Chance of receiving Choice #1: **{outcome_quality['top_choice_prob']*100:.1f}%** · Top 3 Choices: **{outcome_quality['top_3_prob']*100:.1f}%**."
     )
 
 # Table display preparation

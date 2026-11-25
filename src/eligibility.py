@@ -30,6 +30,7 @@ class StudentProfile:
     list_size: int = 50
     priority_mode: str = "College-first"      # "College-first" or "Branch-first"
     round_type: str = "final"                 # Cutoff round: "final" (default, terminal round)
+    ordering_strategy: str = "strategic"      # "strategic" (Dream->Target->Safe) or "preference" (strict student priority)
 
 
 def is_quota_eligible(quota: str, inst_state: str, home_state: str) -> bool:

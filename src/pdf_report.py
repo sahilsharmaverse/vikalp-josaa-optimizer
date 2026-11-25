@@ -18,18 +18,15 @@ import io
 import json
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional
 import xml.sax.saxutils as saxutils
 
-import numpy as np
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.pdfgen import canvas
 from reportlab.platypus import (
-    HRFlowable,
-    KeepTogether,
     PageBreak,
     Paragraph,
     SimpleDocTemplate,
@@ -39,13 +36,8 @@ from reportlab.platypus import (
 )
 
 from src.eligibility import StudentProfile
-from src.simulation import get_model_metrics, get_model_sigma
+from src.simulation import get_model_metrics
 from src.trend import (
-    TREND_GETTING_EASIER,
-    TREND_GETTING_HARDER,
-    TREND_NOT_ENOUGH_DATA,
-    TREND_STABLE,
-    TREND_VOLATILE,
     compute_trend,
 )
 
@@ -192,16 +184,6 @@ def build_pdf_report(
         textColor=COLOR_NAVY,
         spaceBefore=6,
         spaceAfter=4,
-    )
-    style_section_h3 = ParagraphStyle(
-        "SectionH3",
-        parent=styles["Normal"],
-        fontName="Helvetica-Bold",
-        fontSize=10,
-        leading=14,
-        textColor=COLOR_SLATE,
-        spaceBefore=6,
-        spaceAfter=2,
     )
     style_body = ParagraphStyle(
         "BodyDark",
@@ -454,7 +436,7 @@ def build_pdf_report(
                 style_body,
             ),
             Paragraph(
-                f"Strategic allocation target: 20% Dream (reach), 50% Target (core), 30% Safe (anchors).",
+                "Strategic allocation target: 20% Dream (reach), 50% Target (core), 30% Safe (anchors).",
                 style_body,
             ),
         ],

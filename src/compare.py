@@ -11,23 +11,16 @@ Enables comparing 2 or 3 options from the current choice list:
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 
 from src.trend import (
-    COLOR_GREEN,
-    COLOR_GREY,
-    COLOR_RED,
     TREND_GETTING_EASIER,
     TREND_GETTING_HARDER,
-    TREND_NOT_ENOUGH_DATA,
-    TREND_STABLE,
     TREND_VOLATILE,
-    compute_trend,
-    render_trend_badge_html,
 )
 
 # Color-blind friendly styles for up to 3 options

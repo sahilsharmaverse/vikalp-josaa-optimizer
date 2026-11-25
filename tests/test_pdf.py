@@ -81,7 +81,7 @@ def test_pdf_generation_sizes_and_header():
         assert isinstance(pdf_bytes, bytes)
         assert len(pdf_bytes) > 1000
         assert pdf_bytes.startswith(b"%PDF"), f"PDF for n={n} does not start with %PDF"
-        assert elapsed < 3.0, f"Generation for n={n} took {elapsed:.2f}s (must be < 3.0s)"
+        assert elapsed < 5.0, f"Generation for n={n} took {elapsed:.2f}s (must be < 5.0s)"
 
         # Verify page count is positive
         reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))

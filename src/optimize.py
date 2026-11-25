@@ -11,7 +11,7 @@ Constructs an optimized, risk-balanced JoSAA choice list:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
@@ -308,6 +308,7 @@ def build_list(
         return pd.DataFrame()
 
     # 2. Compute probabilities and intervals with dynamic sigma for sparse history
+    sigmas: Union[float, np.ndarray]
     if "years_of_history" in eligible.columns:
         sigmas = np.where(
             eligible["years_of_history"] < 3,

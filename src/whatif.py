@@ -106,10 +106,11 @@ def rescore_choice_list(
         y_hat=rescored["y_hat"].values,
         sigma=effective_sigma,
     )
-    rescored["shifted_probability"] = new_probs
+    new_probs_arr = np.asarray(new_probs, dtype=float)
+    rescored["shifted_probability"] = new_probs_arr
 
     # Recalculate tier labels
-    new_labels = [label_risk(p) for p in new_probs]
+    new_labels = [label_risk(float(p)) for p in new_probs_arr]
     rescored["shifted_label"] = new_labels
 
     # Track tier changes

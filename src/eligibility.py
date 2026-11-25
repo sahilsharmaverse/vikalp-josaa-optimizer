@@ -9,8 +9,8 @@ Enforces official JoSAA counselling allotment rules:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Set
+from dataclasses import dataclass
+from typing import List, Optional
 
 import pandas as pd
 
@@ -61,7 +61,7 @@ def is_quota_eligible(quota: str, inst_state: str, home_state: str) -> bool:
     q = quota.strip().upper()
     if q == "AI":
         return True
-    
+
     inst_st = inst_state.strip().lower()
     home_st = home_state.strip().lower()
 

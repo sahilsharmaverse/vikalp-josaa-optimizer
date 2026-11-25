@@ -1,0 +1,46 @@
+[project]
+name = "vikalp"
+version = "1.2.0"
+description = "JoSAA Choice-List Optimizer and Uncertainty Modeling Engine"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Sahil Sharma" }
+]
+dependencies = [
+    "streamlit>=1.30.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "plotly>=5.15.0",
+    "reportlab>=4.0.0",
+    "pyarrow>=14.0.0",
+    "lightgbm>=4.0.0",
+    "joblib>=1.3.0",
+    "pypdf>=3.17.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.5.0"
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

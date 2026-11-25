@@ -9,9 +9,7 @@ Saves result to data/processed/cutoffs.parquet.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -20,7 +18,7 @@ import pandas as pd
 def assign_branch_group(program_name: str) -> str:
     """Categorize academic program into high-level branch discipline."""
     p = program_name.lower()
-    
+
     # Check computer science & IT disciplines
     if any(k in p for k in [
         "computer", "data science", "artificial intelligence", " ai", "machine learning",

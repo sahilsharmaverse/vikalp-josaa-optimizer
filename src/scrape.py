@@ -133,7 +133,7 @@ def extract_table_dataframe(page: Page) -> pd.DataFrame:
         """() => {
             const table = document.querySelector('#ctl00_ContentPlaceHolder1_GridView1');
             if (!table) return [];
-            return Array.from(table.rows).map(row => 
+            return Array.from(table.rows).map(row =>
                 Array.from(row.cells).map(cell => cell.innerText.trim())
             );
         }"""

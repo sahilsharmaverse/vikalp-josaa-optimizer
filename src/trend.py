@@ -9,9 +9,7 @@ Thresholds are defined as named constants at the top:
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -186,7 +184,7 @@ def compute_prediction_explanation(
             "model_name": "Weighted Trend Predictor (weights 0.5, 0.3, 0.2)",
         }
 
-    from src.predict import Z_80, admit_probability
+    from src.predict import admit_probability
 
     pred_rank = int(np.round(np.exp(y_hat)))
     low_80 = int(np.round(np.exp(y_hat - 1.28 * sigma)))

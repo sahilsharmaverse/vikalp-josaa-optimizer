@@ -5,7 +5,7 @@ Fails loudly if data corruption or unexpected schemas are detected.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Any, Dict, List
 import pandas as pd
 
 
@@ -29,7 +29,7 @@ REQUIRED_COLUMNS: List[str] = [
 def validate_cutoff_dataset(
     df: pd.DataFrame,
     strict_monotonicity: bool = False,
-) -> Dict[str, int]:
+) -> Dict[str, Any]:
     """Validate dataset schema, null values, uniqueness, and rank monotonicity.
 
     Parameters

@@ -23,7 +23,7 @@ Z_80 = 1.28155  # Critical value for 80% central prediction interval
 def admit_probability(
     student_rank: Union[int, float, np.ndarray],
     y_hat: Union[float, np.ndarray],
-    sigma: float,
+    sigma: Union[float, np.ndarray],
 ) -> Union[float, np.ndarray]:
     """Calculate admission probability for a student rank given predicted log cutoff.
 

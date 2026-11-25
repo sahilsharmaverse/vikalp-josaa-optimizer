@@ -253,18 +253,23 @@ def normalize_program_name(prog: str) -> str:
     text = prog.strip()
 
     # Identify special degree qualifications before stripping parentheticals
-    is_dual = "dual degree" in text.lower() or "bachelor and master" in text.lower()
+    is_bs_ms = "bs-ms" in text.lower() or "bachelor of science and master of science" in text.lower()
+    is_dual = ("dual degree" in text.lower() or "bachelor and master" in text.lower()) and not is_bs_ms
     is_integ_mtech = "integrated master of technology" in text.lower()
     is_integ_msc = "integrated master of science" in text.lower()
-    is_bs_ms = "bs-ms" in text.lower() or "bachelor of science and master of science" in text.lower()
     is_bs = "bachelor of science" in text.lower() and not is_bs_ms
     is_barch = "bachelor of architecture" in text.lower()
     is_bplan = "bachelor of planning" in text.lower()
 
     # Strip duration and degree parentheticals: e.g. "(4 Years, Bachelor of Technology)"
     text = re.sub(r"\s*\(\s*\d+\s*Years?[^)]*\)", "", text, flags=re.IGNORECASE)
-    # Strip any preexisting degree qualifier parentheticals to prevent duplicate suffixes like '(Dual Degree)) (Dual Degree)'
-    text = re.sub(r"\s*\(\s*(?:Dual Degree|Integrated M\.?Tech|Integrated M\.?Sc|BS-MS Dual Degree|BS|B\.Arch|B\.Plan)\s*\)", "", text, flags=re.IGNORECASE)
+    # Strip any preexisting degree qualifier parentheticals
+    text = re.sub(
+        r"\s*\(\s*(?:Dual Degree|Integrated (?:M\.?Tech|Master of Technology)|Integrated (?:M\.?Sc|Master of Science)|BS-MS Dual Degree|BS|B\.Arch|B\.Plan)\s*\)",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
     # Clean dangling closing parentheses if any
     text = re.sub(r"\)+\s*$", "", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -294,8 +299,8 @@ def parse_clean_rank(val: object) -> Optional[int]:
     if pd.isna(val):
         return None
     s = str(val).strip()
-    # Drop preparatory ranks ending in P or containing P
-    if "P" in s.upper():
+    # Negative ranks or preparatory ranks ending in P or containing P
+    if s.startswith("-") or "P" in s.upper():
         return None
     # Strip non-digits
     digits = re.sub(r"\D", "", s)

@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import numpy as np
+import pandas as pd
 
 
 def get_model_metrics() -> dict:

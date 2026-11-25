@@ -28,3 +28,6 @@ data/raw/
 # System files
 .DS_Store
 Thumbs.db
+debug.log
+outputs/*.pdf
+

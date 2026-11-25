@@ -320,11 +320,11 @@ def render_svg_circular_gauge(
     return (
         f'<div style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:{size}px;">'
         f'<svg width="{size}" height="{size}" viewBox="0 0 100 100">'
-        f'<circle cx="50" cy="50" r="{radius}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" />'
+        f'<circle cx="50" cy="50" r="{radius}" fill="none" stroke="#E2E8F0" stroke-width="8" />'
         f'<circle cx="50" cy="50" r="{radius}" fill="none" stroke="{stroke_color}" stroke-width="8" '
         f'stroke-dasharray="{stroke_dash:.1f} {circ:.1f}" stroke-linecap="round" transform="rotate(-90 50 50)" />'
         f'<text x="50" y="55" font-family="Inter, sans-serif" font-size="19" font-weight="800" '
-        f'fill="#FFFFFF" text-anchor="middle" dominant-baseline="middle">{pct_text}</text>'
+        f'fill="#0F172A" text-anchor="middle" dominant-baseline="middle">{pct_text}</text>'
         f'</svg>'
         f'</div>'
     )
@@ -465,30 +465,30 @@ def create_comparison_chart(
     fig.add_hline(
         y=current_student_rank,
         line_dash="dashdot",
-        line_color="#E2E8F0",
+        line_color="#0F172A",
         line_width=2.2,
         annotation_text=annot_text,
         annotation_position="bottom right",
-        annotation_font=dict(color="#E2E8F0", size=11.5, family="Inter"),
+        annotation_font=dict(color="#0F172A", size=11.5, family="Inter"),
     )
 
     fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(255,255,255,0.02)",
+        template="plotly_white",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#F8FAFC",
         height=350,
         margin=dict(l=40, r=30, t=30, b=40),
         xaxis=dict(
             title="Counselling Year",
             tickmode="linear",
             dtick=1,
-            gridcolor="rgba(255, 255, 255, 0.08)",
+            gridcolor="#E2E8F0",
         ),
         yaxis=dict(
             type="log",
             title="Closing Rank (Log Scale)",
             tickformat=",d",
-            gridcolor="rgba(255, 255, 255, 0.08)",
+            gridcolor="#E2E8F0",
         ),
         legend=dict(
             orientation="h",

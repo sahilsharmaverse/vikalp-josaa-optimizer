@@ -1,0 +1,1 @@
+"""Vikalp Web Application package."""

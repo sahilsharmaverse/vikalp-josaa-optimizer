@@ -288,11 +288,19 @@ def build_pdf_report(
     story.append(Paragraph("Vikalp, JoSAA Choice List Report", style_title))
     story.append(
         Paragraph(
-            f"Built by Sahil Sharma &nbsp;·&nbsp; Generated on: {now_ist} &nbsp;·&nbsp; Official JoSAA Counselling Advisory",
+            f"Built by Sahil Sharma &nbsp;·&nbsp; Generated on: {now_ist} &nbsp;·&nbsp; Historical Data: 2021–2025 (2026 data unavailable) &nbsp;·&nbsp; Model: Nov 2026",
             style_subtitle,
         )
     )
-    story.append(Spacer(1, 8))
+    story.append(Spacer(1, 4))
+    story.append(
+        Paragraph(
+            "<b>Advisory Notice:</b> Probabilities are statistical estimates based on JoSAA 2021–2025 final-round cutoffs, not official guarantees. "
+            "2026 cutoffs have not yet been released. Zero personal data is stored or logged. Always verify official allotment rules at <u>josaa.nic.in</u>.",
+            style_footnote,
+        )
+    )
+    story.append(Spacer(1, 6))
 
     # Determine effective rank used
     if active_rank is None:
@@ -365,6 +373,12 @@ def build_pdf_report(
             Paragraph(safe_escape(branches_str), style_meta_val),
             Paragraph("Active Rank Callout", style_meta_label),
             Paragraph(rank_used_str, style_meta_val),
+        ],
+        [
+            Paragraph("Historical Data", style_meta_label),
+            Paragraph("2021–2025 (2026 data not yet available)", style_meta_val),
+            Paragraph("Privacy Guarantee", style_meta_label),
+            Paragraph("Zero candidate data stored or logged", style_meta_val),
         ],
     ]
 
@@ -801,9 +815,10 @@ def build_pdf_report(
     )
     disclaimer_text = (
         "<b>Full Disclaimer:</b> Vikalp provides probabilistic decision-support estimates based strictly on historical JoSAA counselling data "
-        "(2021–2025). These statistical estimates do not constitute official allotment guarantees or formal admissions advice. "
+        "(2021–2025). JoSAA 2026 counselling data is not yet available and cannot be known in advance. These statistical estimates are modeled assuming log-normal "
+        "closing rank distributions and do not constitute official allotment guarantees or formal admissions advice. "
         "Actual opening and closing ranks fluctuate every year due to seat matrix modifications, candidate preference trends, "
-        "and examination score distributions. Neither Vikalp nor its creator assumes liability for admissions outcomes. "
+        "and examination score distributions. Zero candidate personal data is stored or logged. Neither Vikalp nor its creator assumes liability for admissions outcomes. "
         "<b>Always verify official cutoffs, seat matrices, and counselling rules at josaa.nic.in.</b>"
     )
     story.append(Paragraph(disclaimer_text, style_body))

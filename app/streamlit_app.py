@@ -511,7 +511,7 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("### ⚙️ Preferences & Filters")
+    st.markdown("### ⚙️ Preferences & Filters / प्राथमिकताएं और फ़िल्टर")
 
     priority_mode = st.selectbox(
         "Priority Mode",
@@ -554,13 +554,18 @@ with st.sidebar:
 st.markdown(
     """
     <div class="hero-card">
-        <div class="hero-headline">Your rank. Your seats. Your smartest list.</div>
-        <div class="hero-subhead">Data-driven JoSAA choice optimization powered by 5 years of cutoffs, quota logic, and uncertainty modeling.</div>
+        <div class="hero-headline">Vikalp / विकल्प: Your rank. Your seats. Your smartest list.</div>
+        <div class="hero-subhead">Data-driven JoSAA choice optimization powered by 5 years of cutoffs (2021–2025), quota logic, and uncertainty modeling.</div>
         <div class="hero-chip-row">
             <span class="hero-chip">🎯 AI / HS / OS Quota Aware</span>
             <span class="hero-chip">⚖️ 20 / 50 / 30 Strategic Mix</span>
             <span class="hero-chip">📊 80% Prediction Intervals</span>
+            <span class="hero-chip">🔒 100% In-Memory Privacy</span>
+            <span class="hero-chip">📅 Data: 2021–2025 (2026 not yet available)</span>
         </div>
+    </div>
+    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; margin-top: 10px; margin-bottom: 16px; font-size: 13px; color: #F59E0B;">
+        ⚠️ <strong>Important Advisory & Disclaimer:</strong> All admission chances are statistical estimates based on historical JoSAA cutoffs (2021–2025), not official guarantees. JoSAA 2026 cutoffs are not yet available. Zero personal data is stored or logged. Always verify official allotment details at <a href="https://josaa.nic.in" target="_blank" style="color: #38BDF8; text-decoration: underline;">josaa.nic.in</a>.
     </div>
     """,
     unsafe_allow_html=True,
@@ -782,7 +787,7 @@ with col0:
     st.markdown(
         f"""
         <div class="glass-metric metric-highlight">
-            <div class="metric-title" style="color: #0EA5E9;">Seat Admission Chance</div>
+            <div class="metric-title" style="color: #0EA5E9;">Admission Chance / प्रवेश संभावना</div>
             <div class="metric-value" style="color: #38BDF8; font-size: {'24px' if rank_shift_pct != 0 else '32px'};">{val_display}</div>
             <div class="metric-desc">{sub_desc}</div>
         </div>
@@ -800,7 +805,7 @@ with col1:
     st.markdown(
         f"""
         <div class="glass-metric metric-dream">
-            <div class="metric-title" style="color: #EF4444;">Dream Options</div>
+            <div class="metric-title" style="color: #EF4444;">Dream / सपना</div>
             <div class="metric-value" style="font-size: {'22px' if rank_shift_pct != 0 else '32px'};">{dream_display}</div>
             <div class="metric-desc">5% &le; P &lt; 30% &middot; Aspirational reach</div>
         </div>
@@ -818,7 +823,7 @@ with col2:
     st.markdown(
         f"""
         <div class="glass-metric metric-target">
-            <div class="metric-title" style="color: #F59E0B;">Target Options</div>
+            <div class="metric-title" style="color: #F59E0B;">Target / लक्ष्य</div>
             <div class="metric-value" style="font-size: {'22px' if rank_shift_pct != 0 else '32px'};">{target_display}</div>
             <div class="metric-desc">30% &le; P &lt; 80% &middot; Competitive zone</div>
         </div>
@@ -836,7 +841,7 @@ with col3:
     st.markdown(
         f"""
         <div class="glass-metric metric-safe">
-            <div class="metric-title" style="color: #22C55E;">Safe Options</div>
+            <div class="metric-title" style="color: #22C55E;">Safe / सुरक्षित</div>
             <div class="metric-value" style="font-size: {'22px' if rank_shift_pct != 0 else '32px'};">{safe_display}</div>
             <div class="metric-desc">P &ge; 80% &middot; Reliable safety anchors</div>
         </div>
@@ -870,6 +875,17 @@ if outcome_quality["expected_choice_no"] is not None:
 # Table display preparation
 display_df = rescored_df.copy()
 
+def _format_plain_rationale(row):
+    tier = row.get("shifted_label", "Target")
+    prob_pct = row.get("shifted_probability", 0.0) * 100
+    y_hat_v = row.get("y_hat", 0.0)
+    pred_c = int(round(np.exp(y_hat_v))) if y_hat_v > 0 else 0
+    pred_r = row.get("predicted_range", "")
+    hi_tier = {"Dream": "सपना", "Target": "लक्ष्य", "Safe": "सुरक्षित"}.get(tier, "")
+    return f"{tier} [{hi_tier}] ({prob_pct:.0f}%): Projected cutoff ~{pred_c:,} (80% band: {pred_r})"
+
+display_df["plain_rationale"] = display_df.apply(_format_plain_rationale, axis=1)
+
 # Tier change impact callout if any options changed tier
 changed_count = int((rescored_df["tier_change"] != "").sum())
 if rank_shift_pct != 0 and changed_count > 0:
@@ -882,7 +898,7 @@ if rank_shift_pct != 0 and changed_count > 0:
 # Table header and action bar
 tbl_col1, tbl_col2, tbl_col3 = st.columns([2, 1, 1])
 with tbl_col1:
-    st.markdown("### 📑 Optimized JoSAA Choice List")
+    st.markdown("### 📑 Optimized JoSAA Choice List / अनुकूलित विकल्प सूची")
 with tbl_col2:
     csv_data = display_df.to_csv(index=False).encode("utf-8")
     st.download_button(
@@ -919,8 +935,7 @@ st.dataframe(
         "seat_type",
         "shifted_probability",
         "shifted_label",
-        "tier_change",
-        "predicted_range",
+        "plain_rationale",
         "warning",
     ]],
     column_config={
@@ -937,9 +952,8 @@ st.dataframe(
             width="small",
         ),
         "shifted_label": st.column_config.TextColumn("Tier", width="small"),
-        "tier_change": st.column_config.TextColumn("Shift Marker", width="medium"),
-        "predicted_range": st.column_config.TextColumn(
-            "Est. Range (80%)", width="small"
+        "plain_rationale": st.column_config.TextColumn(
+            "Why this option? (Plain Language Rationale)", width="large"
         ),
         "warning": st.column_config.TextColumn("Notes / Warnings", width="small"),
     },
@@ -1368,23 +1382,24 @@ else:
 st.markdown(
     """
     <div class="disclaimer-glass">
-        <strong>⚠️ Disclaimer:</strong> These are statistical estimates based on past JoSAA data, not official predictions or guarantees.
-        Seat matrix variations, candidate preference shifts, and exam difficulty fluctuations affect actual allotments. Always verify at 
+        <strong>⚠️ Legal & Advisory Disclaimer:</strong> These are statistical estimates based on historical JoSAA counselling data (2021–2025), not official allotment guarantees or admissions advice.
+        JoSAA 2026 data is not yet available. Seat matrix variations, applicant preference shifts, and exam score distributions affect actual cutoffs. Zero candidate personal data is stored or logged. Always verify official notifications at 
         <a href="https://josaa.nic.in" target="_blank" style="color: #0EA5E9; text-decoration: underline;">josaa.nic.in</a>.
     </div>
     """,
     unsafe_allow_html=True,
 )
 
-with st.expander("ℹ️ How Vikalp Works"):
+with st.expander("ℹ️ How Vikalp Works · Methodology, Assumptions & Privacy"):
     st.markdown(
         """
-        - **Quota & Category Precision**: Evaluates All India (AI), Home State (HS), and Other State (OS) quotas accurately based on your 12th schooling state. OPEN seats are evaluated with CRL, while category seats use category ranks.
-        - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual standard error read directly from calibrated model metrics.
-        - **Strategic Risk Balance**: Constructs a balanced list with **20% Dream** ($5\\% \\le P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$) options. Choices with $P < 5\\%$ are strictly filtered out to ensure every choice is viable.
-        - **Program Scope**: Covers all B.Tech, B.S., and Dual Degree engineering programs. B.Arch, B.Planning, and B.Des use separate entrance ranks and are not included in v1.
-        - **Portfolio Admission Chance**: Estimates the probability of securing at least one seat across your entire list via a 2,000-run Monte Carlo simulation modeling correlated exam/counselling shocks ($\rho = 0.5$).
-        - **Unreachable Choice Detection**: Highlights choices ordered after a near-certain option ($P \\ge 95\\%$) to protect you from wasted choices.
+        - **Historical Data Provenance**: Trained on 5 official JoSAA counselling cycles (**2021–2025**). **2026 data is not yet available** as JoSAA 2026 counselling has not commenced.
+        - **Strict Privacy**: **Zero personal data stored or logged.** All filtering, scoring, and PDF generation occur in-memory during your session.
+        - **Quota & Category Precision**: Evaluates All India (AI), Home State (HS), and Other State (OS) quotas based on your 12th schooling state. OPEN seats use CRL; reserved category seats strictly require and use your Category Rank.
+        - **Uncertainty Quantification**: Calculates $P(\\text{admit}) = 1 - \\Phi\\left(\\frac{\\ln(\\text{rank}) - \\hat{y}}{\\sigma}\\right)$ where $\\hat{y}$ is the weighted trend of past cutoffs and $\\sigma$ is the residual standard error ($\sigma = 0.2164$ for established programs, $\sigma = 0.2569$ for programs with $<3$ years data).
+        - **Adaptive Strategic Balance**: Targets a portfolio of **20% Dream** ($5\\% \\le P < 30\\%$), **50% Target** ($30\\% \\le P < 80\\%$), and **30% Safe** ($P \\ge 80\\%$). When safe options are scarce ($<5$), adaptive diagnostics suggest allied branches, GFTIs, and state counsellings. Choices below 5% are excluded.
+        - **JoSAA Semantics**: JoSAA choices are strictly `(Institute, Academic Program)`. Quotas (HS/OS/AI) and supernumerary female pools are evaluated automatically by JoSAA portal rules, and Vikalp computes admission probability from the best eligible pool without duplicate listings.
+        - **Sequential Allocation Warning**: In JoSAA, you are allotted the first eligible choice from top to bottom. Choices placed below a near-certain option ($P \\ge 95\\%$) are flagged as unreachable.
         """
     )
 

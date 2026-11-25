@@ -263,6 +263,10 @@ def normalize_program_name(prog: str) -> str:
 
     # Strip duration and degree parentheticals: e.g. "(4 Years, Bachelor of Technology)"
     text = re.sub(r"\s*\(\s*\d+\s*Years?[^)]*\)", "", text, flags=re.IGNORECASE)
+    # Strip any preexisting degree qualifier parentheticals to prevent duplicate suffixes like '(Dual Degree)) (Dual Degree)'
+    text = re.sub(r"\s*\(\s*(?:Dual Degree|Integrated M\.?Tech|Integrated M\.?Sc|BS-MS Dual Degree|BS|B\.Arch|B\.Plan)\s*\)", "", text, flags=re.IGNORECASE)
+    # Clean dangling closing parentheses if any
+    text = re.sub(r"\)+\s*$", "", text)
     text = re.sub(r"\s+", " ", text).strip()
 
     # Append canonical degree qualifier to keep separate JoSAA seat choices distinct

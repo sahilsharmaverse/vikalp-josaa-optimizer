@@ -29,6 +29,7 @@ class StudentProfile:
     institute_types: Optional[List[str]] = None    # e.g. ["IIT", "NIT", "IIIT", "GFTI"]
     list_size: int = 50
     priority_mode: str = "College-first"      # "College-first" or "Branch-first"
+    round_type: str = "final"                 # Cutoff round: "final" (default, terminal round)
 
 
 def is_quota_eligible(quota: str, inst_state: str, home_state: str) -> bool:
@@ -78,12 +79,12 @@ def get_effective_student_rank(
     if seat_type.strip().upper() == "OPEN":
         return crl_rank
 
-    # Non-OPEN seat: student must match the category
+    # Non-OPEN seat: student must match the category AND provide a valid category rank
     if seat_type.strip().upper() == student.category.strip().upper():
         if student.category_rank and student.category_rank > 0:
             return student.category_rank
-        # Fallback to CRL if category rank wasn't entered
-        return crl_rank
+        # Without a category rank, candidate competes strictly for OPEN seats via CRL
+        return None
 
     return None
 

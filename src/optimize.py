@@ -234,6 +234,12 @@ def build_list(
     else:
         student_obj = student
 
+    if student_obj.round_type.lower() != "final":
+        raise ValueError(
+            f"Unsupported round_type '{student_obj.round_type}'. Vikalp uses official JoSAA final-round cutoffs "
+            "(Round 6 for 2021-2023, 2025; Round 5 for 2024), which represent the ultimate admission threshold."
+        )
+
     resolved_path = (
         Path(cutoffs_path) if cutoffs_path is not None else DEFAULT_CUTOFFS_PATH
     )
@@ -257,14 +263,15 @@ def build_list(
         sigma=sigma_val,
     )
 
-    # Deduplicate: preserve distinct seat pools (quota, seat_type, gender) while dropping true duplicate records.
-    # If duplicate records exist, keep the row with the higher probability.
+    # JoSAA Rule: In JoSAA, a candidate's choice is strictly (institute, program).
+    # All eligible pools (Quota: HS/OS/AI, Gender: Gender-Neutral/Female-only, Seat Type: OPEN/Category)
+    # are evaluated under the SAME choice. If a student is eligible for multiple pools,
+    # they qualify if they meet the threshold of ANY eligible pool.
+    # Therefore, collapse to ONE choice per (institute, program), retaining the best eligible pool
+    # (highest admission probability) as the effective admission chance.
     eligible = (
         eligible.sort_values(by="probability", ascending=False)
-        .drop_duplicates(
-            subset=["institute", "program", "quota", "seat_type", "gender"],
-            keep="first",
-        )
+        .drop_duplicates(subset=["institute", "program"], keep="first")
         .reset_index(drop=True)
     )
 

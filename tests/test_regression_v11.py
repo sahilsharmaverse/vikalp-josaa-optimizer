@@ -15,8 +15,11 @@ from src.optimize import build_list, is_architecture_or_planning
 from src.pdf_report import build_pdf_report
 
 
-def test_dedup_keeps_distinct_quota_and_gender_pools():
-    """Dedup must NOT merge rows that differ by quota or gender/seat pool."""
+def test_dedup_collapses_to_single_choice_per_institute_program():
+    """In JoSAA, a candidate's choice is (institute, program).
+    Multiple pools (e.g. Female-only vs Gender-Neutral, OPEN vs Category, HS vs OS)
+    must collapse to ONE choice per (institute, program), retaining the best pool's probability.
+    """
     mock_data = pd.DataFrame([
         {
             "institute": "National Institute of Technology, Tiruchirappalli",
@@ -54,22 +57,51 @@ def test_dedup_keeps_distinct_quota_and_gender_pools():
 
     dedup = (
         mock_data.sort_values(by="probability", ascending=False)
-        .drop_duplicates(
-            subset=["institute", "program", "quota", "seat_type", "gender"],
-            keep="first",
-        )
+        .drop_duplicates(subset=["institute", "program"], keep="first")
         .reset_index(drop=True)
     )
 
-    # All 4 rows represent distinct counselling seat allocations and must be preserved
-    assert len(dedup) == 4
-    genders = set(dedup[dedup["quota"] == "OS"]["gender"])
-    assert "Female-only" in genders
-    assert "Gender-Neutral" in genders
+    # Must collapse to exactly 1 choice for (NIT Trichy, CSE) with highest probability 0.70
+    assert len(dedup) == 1
+    assert dedup.iloc[0]["probability"] == 0.70
+    assert dedup.iloc[0]["seat_type"] == "OBC-NCL"
 
-    quotas = set(dedup[dedup["gender"] == "Gender-Neutral"]["quota"])
-    assert "OS" in quotas
-    assert "HS" in quotas
+
+def test_female_student_collapses_choices_to_one_per_program():
+    """Verify on real cutoff data that a female student has no duplicate (institute, program) pairs,
+    and probabilities reflect the better eligible pool.
+    """
+    student = StudentProfile(
+        main_rank=12000,
+        category="OPEN",
+        gender="Female-only",
+        home_state="Delhi",
+        preferred_branches=["CSE", "ECE"],
+        institute_types=["NIT", "IIIT"],
+        list_size=30,
+    )
+    df = build_list(student)
+    assert not df.empty
+    # Must have zero duplicate (institute, program) entries
+    duplicates = df.duplicated(subset=["institute", "program"]).sum()
+    assert duplicates == 0, f"Found {duplicates} duplicate institute+program choices in choice list!"
+
+
+def test_category_without_rank_only_gets_open_seats():
+    """If a student selects a reserved category but provides no category rank,
+    they must only compete for OPEN seats using CRL (not category seats).
+    """
+    student = StudentProfile(
+        main_rank=15000,
+        category="OBC-NCL",
+        category_rank=None,
+        gender="Gender-Neutral",
+        home_state="Delhi",
+        list_size=20,
+    )
+    df = build_list(student)
+    assert not df.empty
+    assert (df["seat_type"] == "OPEN").all(), "Found non-OPEN seats when category_rank was None!"
 
 
 def test_dedup_keeps_highest_probability_for_true_duplicates():

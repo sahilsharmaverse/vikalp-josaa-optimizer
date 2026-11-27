@@ -1,10 +1,10 @@
 # Virtual environments
-venv/
 .venv/
+venv/
 env/
 ENV/
 
-# Python byte-code
+# Python byte-code & build
 __pycache__/
 *.py[cod]
 *$py.class
@@ -12,10 +12,16 @@ __pycache__/
 dist/
 build/
 
-# Testing & cache
+# Testing & quality caches
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
+coverage.xml
+
+# Node.js dependencies
+node_modules/
 
 # Secrets & environment
 .env
@@ -25,9 +31,20 @@ htmlcov/
 # Raw scraped data (only data/processed/ is committed)
 data/raw/
 
-# System files
+# System & editor files
 .DS_Store
 Thumbs.db
-debug.log
-outputs/*.pdf
+*.swp
+*.swo
+.vscode/
+.idea/
 
+# Debug and temporary logs
+*.log
+debug.log
+
+# Scratch outputs & temporary artifacts
+scratch/
+outputs/ui/
+outputs/*.tmp
+outputs/*.pdf

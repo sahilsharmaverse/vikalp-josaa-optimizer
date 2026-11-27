@@ -1,10 +1,12 @@
 import os
 import shutil
+import tempfile
 import time
+from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-DOCS_DIR = r"C:\Users\HP\Documents\SNAPDRAGON HACKTHONE\vikalp\docs\screenshots"
-ARTIFACTS_DIR = r"C:\Users\HP\.gemini\antigravity\brain\63377d71-64cb-447f-b83c-c87e2b572b16\screenshots"
+DOCS_DIR = Path("docs/screenshots")
+ARTIFACTS_DIR = Path(tempfile.gettempdir()) / "vikalp_screenshots"
 os.makedirs(DOCS_DIR, exist_ok=True)
 os.makedirs(ARTIFACTS_DIR, exist_ok=True)
 

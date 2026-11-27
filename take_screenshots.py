@@ -1,10 +1,11 @@
 """Capture desktop (1280px) and mobile (390px) screenshots of Vikalp."""
 
 import shutil
+import tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
-ARTIFACT_DIR = Path(r"C:\Users\HP\.gemini\antigravity\brain\63377d71-64cb-447f-b83c-c87e2b572b16\screenshots")
+ARTIFACT_DIR = Path(tempfile.gettempdir()) / "vikalp_screenshots"
 DOCS_DIR = Path("docs/screenshots")
 
 DOCS_DIR.mkdir(parents=True, exist_ok=True)

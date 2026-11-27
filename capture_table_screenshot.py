@@ -1,9 +1,10 @@
 import shutil
+import tempfile
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 DOCS_DIR = Path("docs/screenshots")
-ARTIFACT_DIR = Path(r"C:\Users\HP\.gemini\antigravity\brain\63377d71-64cb-447f-b83c-c87e2b572b16\screenshots")
+ARTIFACT_DIR = Path(tempfile.gettempdir()) / "vikalp_screenshots"
 
 with sync_playwright() as p:
     browser = p.chromium.launch()

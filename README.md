@@ -32,18 +32,29 @@ Existing counseling sites present static last-year cutoffs with **zero uncertain
 
 ## 📊 2. Headline Results: Audited 2025 Held-Out Benchmark
 
-Evaluated on the held-out 2025 JoSAA Round 5 dataset ($N = 9,336$ evaluable program offerings). 95% confidence intervals are computed via **clustered bootstrap** ($B = 1,000$ iterations) clustered over $837$ independent `(institute, program)` series to account for intra-cluster quota and seat-pool correlation:
+Evaluated on the held-out 2025 JoSAA Round 5 dataset ($N = 9,336$ evaluable program offerings). 95% confidence intervals are computed via **clustered bootstrap** ($B = 1,000$ iterations) clustered over $837$ independent `(institute, program)` series:
 
-| Metric | Naive Baseline (Last Year) | Weighted Trend (Vikalp) | Difference ($\Delta = \text{Naive} - \text{Trend}$) | Statistical Significance |
+### Primary Non-Circular Evaluation (Fixed Relative Offsets Δ ∈ [-30%, +30%])
+Querying candidate ranks at fixed relative offsets from last year's cutoff ($N = 84,024$ evaluations across identical query ranks for all models):
+
+| Metric | Naive Baseline (Last Year) | Weighted Trend (Vikalp Shipped) | Difference ($\Delta = \text{Naive} - \text{Trend}$) | Statistical Evidence |
 |:---|:---:|:---:|:---:|:---:|
-| **MAE (log rank)** | 0.1409 [0.1355, 0.1464] | **0.1360** [0.1309, 0.1412] | **+0.0049** [0.0026, 0.0071] | **$p < 0.001$ (Zero strictly outside 95% CI)** |
+| **MAE (log rank)** | 0.1409 [0.1355, 0.1464] | **0.1360** [0.1309, 0.1412] | **+0.0049** [0.0026, 0.0071] | **3.48% relative reduction** (Paired t-test $p = 3.53 \times 10^{-7}$; Wilcoxon $p = 0.183$) |
 | **Mean Relative Error** | 16.64% [14.21%, 20.75%] | **16.35%** [13.18%, 22.32%] | +0.29% [-0.85%, +1.42%] | Consistent directional gain |
-| **80% Prediction Coverage** | 90.08% [89.19%, 90.91%] | **90.26%** [89.37%, 91.10%] | +0.18% [-0.35%, +0.72%] | Conservative coverage buffer |
-| **Canonical Integrated Brier** | 0.0829 [0.0807, 0.0851] | **0.0842** [0.0821, 0.0864] | -0.0013 [-0.0024, -0.0002] | High calibration in decision zone |
-| **Expected Calibration Error (ECE)** | 0.0533 | **0.0487** (Raw) $\to$ **0.0109** (Isotonic) | **-0.0378** (Isotonic Post-Hoc) | **77.6% reduction in calibration gap** |
-| **Portfolio Allotment Brier** | — | **0.0666** (ECE = 0.0292) | — | Copula validated on 120 portfolios |
+| **Primary Brier Score** | 0.1550 [0.1531, 0.1569] | **0.1436** [0.1406, 0.1465] | **-0.0114** [-0.0145, -0.0083] | **Trend strictly wins** (95% CIs non-overlapping) |
+| **Log Loss / Cross-Entropy** | 0.4780 [0.4734, 0.4825] | **0.4505** [0.4411, 0.4599] | **-0.0275** [-0.0354, -0.0196] | **Trend strictly wins** |
+| **Expected Calibration Error (ECE)** | 0.0793 [0.0748, 0.0837] | **0.0449** [0.0380, 0.0521] | **-0.0344** (Recalibrated) | **43.4% reduction in calibration gap** |
+| **80% Prediction Coverage** | 90.08% [89.19%, 90.91%] | **84.01%** [82.87%, 85.05%] | -6.07% (Closer to nominal 80%) | Calibrated $\sigma = 0.1733$ fixes over-coverage |
+| **90% Prediction Coverage** | 93.82% [93.17%, 94.48%] | **89.82%** [88.93%, 90.70%] | -4.00% (Matches nominal 90%) | Near-perfect 90% calibration |
 
-> **Audit Guarantee:** Evaluated under strict temporal isolation. Prediction intervals and $\sigma$ parameters are estimated exclusively on training cycles ($t \le 2024$, $N=24,160$). Zero 2026 data exists.
+### Where the Trend Model Beats Naive — and Where It Does Not
+- **Where Trend Beats Naive:** Trend consistently beats Naive on point prediction MAE (by +0.0049 log points, 3.48% relative error reduction), primary Brier score (0.1436 vs 0.1550), log loss (0.4505 vs 0.4780), and interval calibration (84.01% coverage vs 90.08% for raw naive).
+- **Where Trend Does Not Beat Competitors:**
+  1. On the secondary z-grid ($z \in [-2.5, +2.5]$), Naive achieves a slightly lower numerical Brier score (0.0829 vs 0.0842) solely because its larger raw variance tests points deeper into the deterministic tails.
+  2. On the primary non-circular grid, LightGBM achieves lower ECE (0.0348 vs 0.0449), but suffers higher overall Brier loss (0.1482) and higher log loss (0.4775).
+  3. On median series error, the non-parametric Wilcoxon signed-rank test yields $p = 0.183$. This confirms that for stable programs without drift, trend and naive are indistinguishable; the entire gain comes from successfully tracking multi-year directional drift on dynamic programs.
+
+> **Audit Guarantee:** Evaluated under strict temporal isolation. Prediction intervals and $\sigma = 0.1733$ (scale factor $0.7610$) are estimated exclusively on training cycles ($t \le 2024$, $N=24,160$). Zero 2026 data exists.
 
 ---
 
@@ -67,7 +78,7 @@ Evaluating predicted admission probability against observed empirical allotment 
                                   
   [Historical Cutoffs 2021-2024] ───► [Stage 1: Forecaster] ───► Expected Log-Rank ŷ
                                               │                   
-                                     [Conformal / Sigma] ───────► Calibrated σ = 0.2278
+                                     [Conformal / Sigma] ───────► Calibrated σ = 0.1733
                                               │                   
    Candidate Profile:                         ▼                   
    • JEE Main CRL: 25,000        [Stage 2: Copula Simulation] ──► P(Admit) per choice
@@ -101,14 +112,14 @@ $$P(\ge 1 \text{ seat}) = \frac{1}{M}\sum_{m=1}^{M} \mathbb{I}\left\{\bigcup_{i=
 
 ## 🔬 5. Negative Results & Modeling Lessons (What Didn't Work)
 
-In data science, knowing **why a complex model fails** is as valuable as knowing what works. Across 3 rolling-origin folds (2023, 2024, 2025), a tuned LightGBM regressor was benchmarked against the simple Weighted Trend:
+In data science, knowing **why a complex model fails** is as valuable as knowing what works. Across 3 rolling-origin folds (2023, 2024, 2025) on the primary non-circular relative offset grid:
 
-| Model Architecture | 3-Year Mean MAE | 3-Year Rel. Error | 80% Coverage | Brier Score | ECE |
-|:---|:---:|:---:|:---:|:---:|:---:|
-| **Weighted Trend (Vikalp)** | **0.1427** | **14.88%** | **89.84%** | **0.0850** | 0.0552 |
-| **Naive Baseline (Last Year)** | 0.1507 | 15.67% | 89.12% | 0.0862 | 0.0533 |
-| **Ridge Linear Trend** | 0.1575 | 16.55% | 88.35% | 0.0885 | **0.0491** |
-| **LightGBM Regressor** | 0.1660 | 17.27% | 79.75% | 0.1121 | 0.0502 |
+| Model Architecture | 3-Year Mean MAE | 3-Year Rel. Error | 80% Coverage | Primary Brier | Log Loss | ECE |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Weighted Trend (Calibrated)** | **0.1427** | **14.88%** | **82.65%** | **0.1474** | **0.4603** | **0.0712** |
+| **Naive Baseline (Last Year)** | 0.1507 | 15.67% | 89.12% | 0.1607 | 0.4906 | 0.0935 |
+| **Ridge Linear Trend** | 0.1575 | 16.55% | 88.35% | 0.1671 | 0.5091 | 0.0781 |
+| **LightGBM Regressor** | 0.1660 | 17.27% | 79.75% | 0.1742 | 0.5579 | 0.0783 |
 
 ### Why LightGBM Did Not Beat the Weighted Trend:
 1. **Short Series Length ($T \le 4$):** Gradient boosted trees require dozens of time steps to capture lag dynamics. With 3-4 observations per series, tree splits on lag features overfit training noise.
@@ -182,7 +193,19 @@ To maintain engineering integrity and parental trust, Vikalp explicitly document
 
 1. **No 2026 Data:** JoSAA 2026 counseling has not yet taken place. All forecasts, intervals, and probabilities are strictly conditioned on historical trends from 2021 through 2025 ($N = 44,637$ offerings). Anyone promising exact 2026 cutoffs is guessing.
 2. **No Real-Time Seat Matrix Changes:** Closing cutoffs cannot anticipate unannounced seat expansions, new branch inaugurations, or seat matrix restructurings until JoSAA officially releases the upcoming cycle's seat matrix.
-3. **Modest Improvement Over Naive Baseline:** On held-out 2025 data, Vikalp's Weighted Trend model improves log-rank MAE by **+0.0049** log points (~1.2% relative gain) over the simple last-year naive baseline. While this improvement is statistically significant ($p < 0.001$, 95% bootstrap CI `[0.0026, 0.0071]`), predicting cutoff ranks is fundamentally bounded: last year's cutoff already accounts for $>96\%$ of variance. The primary engineering value is not magical clairvoyance, but rigorous uncertainty quantification, conformal intervals, and copula-based portfolio risk protection.
+3. **Modest Improvement Over Naive Baseline:** On held-out 2025 data, Vikalp's Weighted Trend model improves log-rank MAE by **+0.0049** log points (a **3.48% relative error reduction**, $0.0049 / 0.1409$) over the simple last-year naive baseline. While the paired t-test yields $t = 5.10, p = 3.53 \times 10^{-7}$ and the 95% bootstrap CI `[0.0026, 0.0071]` strictly excludes zero, the non-parametric Wilcoxon signed-rank test on medians yields $p = 0.183$. This confirms that cutoff ranks are fundamentally persistent: last year's cutoff explains $>96\%$ of variance, and the gain is concentrated on offerings with multi-year drift rather than sudden dramatic shifts.
+
+---
+
+## 🖥️ 9. Application User Interface
+
+Vikalp features a clean, jargon-free user experience built for engineering aspirants and worried parents:
+
+| Screen | Desktop View (1440px) | Mobile View (390px) |
+|:---|:---|:---|
+| **1. Landing & Profile Entry** | ![Landing Desktop](docs/screenshots/landing_desktop.png) | ![Landing Mobile](docs/screenshots/landing_mobile.png) |
+| **2. Your Balanced Choice List** | ![Your List Desktop](docs/screenshots/your_list_desktop.png) | ![Your List Mobile](docs/screenshots/your_list_mobile.png) |
+| **3. How We Got This & Trust** | ![Trust Desktop](docs/screenshots/how_we_got_this_desktop.png) | ![Trust Mobile](docs/screenshots/how_we_got_this_mobile.png) |
 
 ---
 

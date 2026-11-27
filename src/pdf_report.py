@@ -507,7 +507,7 @@ def build_pdf_report(
             metrics = get_model_metrics()
     else:
         metrics = get_model_metrics()
-    model_sigma = metrics.get("sigma", 0.2278)
+    model_sigma = metrics.get("sigma", 0.1733)
 
     # Detect unreachable choices (sitting after an option with P >= 0.95)
     unreachable_flags: Dict[int, bool] = {}
@@ -744,7 +744,7 @@ def build_pdf_report(
     )
     val_year_val = metrics.get("val_year", 2025)
     mae_val = metrics.get("mae", 0.1360)
-    cov_val = metrics.get("coverage_80", 0.9026)
+    cov_val = metrics.get("coverage_80", 0.8401)
 
     metrics_data = [
         [

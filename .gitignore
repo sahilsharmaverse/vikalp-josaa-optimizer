@@ -49,6 +49,15 @@ outputs/ui/
 outputs/*.tmp
 outputs/*.pdf
 
+# Documentation screenshots: keep only canonical 6 files
+docs/screenshots/*
+!docs/screenshots/landing_desktop.png
+!docs/screenshots/landing_mobile.png
+!docs/screenshots/your_list_desktop.png
+!docs/screenshots/your_list_mobile.png
+!docs/screenshots/how_we_got_this_desktop.png
+!docs/screenshots/how_we_got_this_mobile.png
+
 # Personal preparation notes
 .prep_notes/
 docs/RESUME_FACTS.md

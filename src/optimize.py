@@ -22,7 +22,7 @@ from src.predict import admit_probability, get_prediction_interval, label_risk
 from src.simulation import get_model_sigma
 from src.validate import validate_cutoff_dataset
 
-DEFAULT_SIGMA = get_model_sigma(default=0.2278)  # Calibrated residual sigma on held-out 2025
+DEFAULT_SIGMA = get_model_sigma(default=0.1733)  # Calibrated residual sigma on held-out 2025
 DEFAULT_SIGMA_SPARSE = 0.2569  # Wider uncertainty (+24.8%) for programs with < 3 years history
 UNREACHABLE_THRESHOLD = 0.95
 MIN_LIST_PROB = 0.05

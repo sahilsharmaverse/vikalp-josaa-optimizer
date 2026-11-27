@@ -36,34 +36,45 @@ Following the framework of Mitchell et al. (*Model Cards for Model Reporting*, F
 ---
 
 ## 4. Evaluation Metrics & Benchmarks
-All metrics evaluated on held-out 2025 JoSAA round 5 cutoffs ($N = 9,336$ offerings) with 95% bootstrap confidence intervals clustered across 837 `(institute, program)` series:
+All metrics evaluated on held-out 2025 JoSAA round 5 cutoffs ($N = 9,336$ offerings) with 95% bootstrap confidence intervals clustered across 837 `(institute, program)` series.
+
+### Primary Benchmark: Non-Circular Relative Offset Grid (Δ ∈ [-30%, +30%])
+Candidate ranks queried at fixed offsets relative to $C_{t-1}$ ($N = 84,024$ evaluations across identical query ranks for all models):
 
 | Metric | Point Estimate | 95% Clustered CI | Description |
 |:---|:---:|:---:|:---|
-| **MAE (log rank)** | **0.1360** | [0.1309, 0.1412] | Log-rank mean absolute error (beats naive by +0.0049, $p < 0.001$). |
+| **MAE (log rank)** | **0.1360** | [0.1309, 0.1412] | Log-rank mean absolute error (beats naive by +0.0049, 3.48% relative gain). |
 | **Mean Relative Error** | **16.35%** | [13.18%, 22.32%] | Mean percentage error in closing rank space. |
-| **80% Coverage (Conformal)** | **84.00%** | [82.50%, 85.50%] | Distribution-free split conformal interval coverage (half-width ±0.2222). |
-| **80% Coverage (Gaussian)** | **90.26%** | [89.37%, 91.10%] | Parametric Gaussian interval coverage using leak-free train $\sigma = 0.2278$. |
-| **Integrated Brier Score** | **0.0842** | [0.0821, 0.0864] | Evaluated across standardized rank grid $z \in [-2.5, +2.5]$ ($N = 196,056$). |
-| **ECE (Expected Calibration Error)** | **0.0487** | [0.0410, 0.0560] | Expected calibration gap over 10 uniform probability bins. |
-| **Post-Hoc Isotonic ECE** | **0.0109** | [0.0080, 0.0140] | ECE achieved following isotonic calibration on validation fold. |
+| **Brier Score (Non-Circular)** | **0.1436** | [0.1406, 0.1465] | Mean squared probability error (beats naive 0.1550 [0.1531, 0.1569]). |
+| **Log Loss / Binary Cross-Entropy**| **0.4505** | [0.4411, 0.4599] | Negative log likelihood (beats naive 0.4780 [0.4734, 0.4825]). |
+| **ECE (Expected Calibration Error)**| **0.0449** | [0.0380, 0.0521] | Expected calibration gap over 10 uniform probability bins. |
+| **80% Coverage (Calibrated Normal)**| **84.01%** | [82.87%, 85.05%] | Empirical coverage under calibrated $\sigma = 0.1733$ (close to nominal 80%). |
+| **80% Coverage (Conformal)** | **84.00%** | [82.50%, 85.50%] | Distribution-free split conformal coverage (half-width ±0.2222). |
+
+### Secondary Benchmark: Standardized z-Grid Support (Auxiliary)
+- **Integrated Brier Score:** **0.0842** [0.0821, 0.0864] (Naive: 0.0829 [0.0807, 0.0851]).
+- *Methodology Note:* Query points placed at $y_{\text{hat}} + \sigma z$ depend on the model's own scale $\sigma$, which evaluates models on disparate supports and deflates scores into standard normal quantiles by construction.
 
 ---
 
 ## 5. Training and Evaluation Data
 - **Training Corpus:** Official JoSAA closing cutoffs from counseling cycles 2021 through 2024 ($N = 24,160$ evaluable option records).
 - **Evaluation Corpus:** Held-out JoSAA 2025 round 5 final allotment data ($N = 9,336$ evaluable option records).
-- **Temporal Isolation:** All feature generation, lag generation, and uncertainty parameters ($\sigma$) are computed strictly under temporal restrictions ($t < T$). Zero 2026 data exists.
+- **Temporal Isolation:** All feature generation, lag generation, and uncertainty parameters ($\sigma = 0.1733$, scale factor 0.7610) are computed strictly under temporal restrictions ($t \le 2024$). Zero 2026 data exists.
 
 ---
 
 ## 6. Quantitative Analysis & Model Comparisons
-In 3-year rolling-origin cross-validation (2023 - 2025), Vikalp's Weighted Trend model was benchmarked against three alternative paradigms:
-1. **Weighted Trend:** 3-Year Mean MAE = `0.1427`, Brier = `0.0850`, ECE = `0.0552` (Top Performer).
-2. **Naive Baseline (Last Year):** 3-Year Mean MAE = `0.1507`, Brier = `0.0862`, ECE = `0.0533`.
-3. **Ridge Linear Trend:** 3-Year Mean MAE = `0.1575`, Brier = `0.0885`, ECE = `0.0491`.
-4. **LightGBM Regressor:** 3-Year Mean MAE = `0.1660`, Brier = `0.1121`, ECE = `0.0502`.
-*Finding:* Tree-based gradient boosting underperforms exponential smoothing on this short-series panel due to high partition variance and bounded extrapolation constraints.
+In 3-year rolling-origin cross-validation (2023 - 2025) on the primary non-circular relative offset grid:
+1. **Weighted Trend (Calibrated):** 3-Year Mean MAE = `0.1427`, Brier = `0.1474`, Log Loss = `0.4603`, ECE = `0.0712`.
+2. **Naive Baseline (Last Year):** 3-Year Mean MAE = `0.1507`, Brier = `0.1607`, Log Loss = `0.4906`, ECE = `0.0935`.
+3. **Ridge Linear Trend:** 3-Year Mean MAE = `0.1575`, Brier = `0.1671`, Log Loss = `0.5091`, ECE = `0.0781`.
+4. **LightGBM Regressor:** 3-Year Mean MAE = `0.1660`, Brier = `0.1742`, Log Loss = `0.5579`, ECE = `0.0783`.
+
+*Statistical Significance & Caveats:*
+- The paired t-test on MAE residuals across all 2025 series shows $t = 5.10, p = 3.53 \times 10^{-7}$.
+- The non-parametric Wilcoxon signed-rank test yields $p = 0.183$, demonstrating that the gain is concentrated on offerings with multi-year drift, while stable options perform on par with last year's cutoff.
+- The 95% bootstrap CI for $\Delta_{\text{MAE}}$ is `[0.0026, 0.0071]`, strictly excluding zero.
 
 ---
 

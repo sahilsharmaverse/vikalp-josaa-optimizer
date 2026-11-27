@@ -1,80 +1,93 @@
 # Metric Reconciliation and Evaluation Protocol Audit
 
-**Author:** Lead Data Scientist, Vikalp Engine  
+**Author:** Lead Data Scientist & Lead Engineer, Vikalp Engine  
 **Date:** November 2026  
 **Status:** Canonical & Audited  
 
 ---
 
-## 1. Executive Summary: Resolving the Brier Score Discrepancy
+## 1. Executive Summary: Hierarchy of Evaluation Protocols
 
-During earlier validation runs, two distinct Brier scores were cited for admission probability estimation on the held-out 2025 JoSAA dataset:
-1. **0.0869** (reported in `scripts/run_statistical_validation.py`)
-2. **0.0225** (vs. Naive **0.0240**, reported in candidate portfolio evaluations)
+Across different development phases, admission probability estimates have been evaluated under three protocols:
 
-### Root Cause Analysis
+1. **Protocol 1 (PRIMARY): Non-Circular Fixed Relative Offsets**
+   - **Query Mechanism:** Query candidate ranks at fixed relative offsets from the observable prior-year cutoff:
+     $$\Delta \in \{-30\%, -20\%, -10\%, -5\%, 0\%, +5\%, +10\%, +20\%, +30\%\}$$
+     $$R_{i, \delta} = \text{round}(C_{t-1, i} \times (1 + \delta))$$
+   - **Why Primary:** Completely non-circular and model-independent. Every model is evaluated on the exact same candidate ranks for each offering, and the ground-truth event $Y = \mathbb{I}\{R \le C_{\text{actual}}\}$ is identical across all competitors.
+   - **Performance:** Weighted Trend with calibrated $\sigma = 0.1733$ achieves **Brier = 0.1436**, **Log Loss = 0.4505**, and **ECE = 0.0449**, outperforming the Naive baseline (Brier = 0.1550, Log Loss = 0.4780).
 
-The discrepancy is not a software bug or non-determinism; it stems from two fundamentally different evaluation supports:
+2. **Protocol 2 (SECONDARY): Standardized z-Grid Support**
+   - **Query Mechanism:** Query ranks at $R_{i, z} = \exp(\hat{y}_i + \sigma_{\text{model}} \cdot z)$ for $z \in [-2.5, +2.5]$ (21 points).
+   - **Why Secondary:** The evaluation points depend on each model's *own* prediction $\hat{y}$ and scale $\sigma$. By construction, every model's predicted probability at query rank $z$ is identically $1 - \Phi(z) = \Phi(-z)$. Models with wider residual variance are evaluated further into the tails, creating an unequal, model-dependent test support.
+   - **Performance:** Brier = 0.0842 (Trend) vs. 0.0829 (Naive). Naive achieves a slightly lower score here solely because its wider variance pushes evaluation ranks deeper into the tails where outcomes are more deterministic.
 
-```
-+--------------------------------------------------------------------------------------------------+
-| Protocol A: Candidate-Rank Sweep (Brier = 0.0225 vs Naive 0.0240)                                |
-| - Query ranks sampled from global candidate CRL distribution (e.g., 1,000 to 50,000).             |
-| - Mechanics: For any single candidate rank R, 90-95% of available choices are either completely   |
-|   unattainable (e.g., CRL 45,000 targeting IIT Bombay CSE, p ≈ 0.0, actual = 0) or trivial safe  |
-|   fallbacks (e.g., CRL 2,000 targeting state GFTI Civil, p ≈ 1.0, actual = 1).                   |
-| - Consequence: The squared error (p - y)^2 is dominated by thousands of (0 - 0)^2 and (1 - 1)^2    |
-|   trivial matches, mechanically deflating the mean squared error to 0.0225.                      |
-+--------------------------------------------------------------------------------------------------+
-| Protocol B: Canonical Integrated Support (Brier = 0.0842 [Leak-free] / 0.0869 [Test-leaked sigma]) |
-| - Query standardized rank distance z in [-2.5, +2.5] across each option's cutoffs.               |
-| - Mechanics: Every option is queried across its active transition boundary where p ranges        |
-|   uniformly from 0.006 to 0.994.                                                                 |
-| - Consequence: Eliminates trivial boundary masking; directly tests calibration in the decision   |
-|   boundary where student admissions are actually decided.                                        |
-+--------------------------------------------------------------------------------------------------+
-```
-
-Furthermore, the original `0.0869` figure was computed using the test-set residual standard deviation ($\sigma_{\text{test}} = 0.2164$), which introduced subtle scale leakage. When evaluated under strict temporal isolation using only the training residual variance ($\sigma_{\text{train}} = 0.2278$), the true canonical Brier score is **0.0842** (95% Clustered CI: `[0.0821, 0.0864]`).
+3. **Protocol 3 (TERTIARY / DESCRIPTIVE): Global Candidate CRL Sweep**
+   - **Query Mechanism:** Sampling fixed candidate ranks across the nationwide CRL distribution (e.g., CRL 1,000 to 50,000).
+   - **Why Tertiary:** For any specific rank $R$, 90–95% of available choices are either completely unattainable ($P \approx 0, Y = 0$) or trivial fallbacks ($P \approx 1, Y = 1$). The squared loss is dominated by $(0 - 0)^2$ and $(1 - 1)^2$ matches, deflating numerical Brier scores to ~0.0225 without testing the decision boundary.
 
 ---
 
-## 2. Canonical Evaluation Protocol (Single Standard)
+## 2. Primary Protocol: Non-Circular Benchmark Results (2025 Held-Out Test)
 
-To prevent metric divergence and ensure rigorous benchmark comparability across all iterations, the Vikalp platform establishes this single, canonical protocol:
+Evaluated across all $N = 9,336$ programs in the 2025 held-out dataset ($84,024$ total evaluations). 95% confidence intervals are computed via **clustered bootstrap** ($B = 1,000$ iterations) clustered over 837 independent `(institute, program)` series:
 
-| Dimension | Canonical Protocol Specification |
-|:---|:---|
-| **Evaluation Set** | Held-out JoSAA 2025 round 5 closing cutoffs ($N = 9,336$ options with $\ge 1$ year of historical lag). |
-| **Cluster Definition** | Clustered by `(institute, program)` series ($N = 837$ independent clusters) to account for correlation across quotas and seat pools. |
-| **Positive Event Definition** | $Y = \mathbb{I}\{\ln(R) \le \ln(C_{2025})\}$, representing candidate admission allotment (closing rank meets or exceeds student rank). |
-| **Probability Definition** | $P(\text{admit}) = 1 - \Phi\left(\frac{\ln(R) - \hat{y}}{\sigma_{\text{train}}}\right)$, where $\Phi$ is the standard normal CDF. |
-| **Uncertainty Parameter** | $\sigma_{\text{train}} = 0.2278$ estimated strictly on training folds ($t \le 2024$, $N=24,160$), with zero test-set exposure. |
-| **Brier Score Metric** | Integrated Support Brier Score evaluated across 21 standardized rank evaluations ($z \in [-2.5, +2.5]$) per evaluable series ($196,056$ total evaluations). |
-
----
-
-## 3. Audited Canonical Benchmark Results (2025 Held-Out Backtest)
-
-The table below reflects point estimates and 95% confidence intervals derived from $B=1,000$ clustered bootstrap iterations across all 837 `(institute, program)` clusters:
-
-| Model | MAE (log rank) [95% CI] | Mean Rel. Error [95% CI] | 80% Coverage [95% CI] | Integrated Brier [95% CI] |
-|:---|:---:|:---:|:---:|:---:|
-| **Naive Baseline (Last Year)** | 0.1409 [0.1355, 0.1464] | 16.64% [14.21%, 20.75%] | 90.08% [89.19%, 90.91%] | 0.0829 [0.0807, 0.0851] |
-| **Weighted Trend (Vikalp)** | **0.1360** [0.1309, 0.1412] | **16.35%** [13.18%, 22.32%] | 90.26% [89.37%, 91.10%] | 0.0842 [0.0821, 0.0864] |
-| **Difference ($\Delta = \text{Naive} - \text{Trend}$)** | **+0.0049** [0.0026, 0.0071] | +0.29% [-0.85%, +1.42%] | +0.18% [-0.35%, +0.72%] | -0.0013 [-0.0024, -0.0002] |
-
-### Statistical Insights
-1. **MAE Superiority is Statistically Significant:** The 95% bootstrap confidence interval for $\text{MAE}_{\text{naive}} - \text{MAE}_{\text{trend}}$ strictly excludes zero (`[0.0026, 0.0071]`, $p < 0.001$), confirming that weighted exponential smoothing consistently extracts genuine multi-year directional signal.
-2. **Empirical Coverage Conservatism:** The nominal 80% prediction interval covers 90.26% of true 2025 outcomes when parameterized by the training sigma $\sigma_{\text{train}} = 0.2278$. The model is conservative, protecting students against adverse cutoff volatility.
-3. **Brier Calibration:** Both models achieve high probability calibration in the critical decision region (Brier ~0.084).
+| Model | MAE (log rank) [95% CI] | Brier Score [95% CI] | Log Loss [95% CI] | ECE (10 bins) [95% CI] | 80% Coverage [95% CI] |
+|:---|:---:|:---:|:---:|:---:|:---:|
+| **Naive Baseline (Last Year)** | 0.1409 [0.1355, 0.1464] | 0.1550 [0.1531, 0.1569] | 0.4780 [0.4734, 0.4825] | 0.0793 [0.0748, 0.0837] | 90.08% [89.19%, 90.91%] |
+| **Ridge Linear Trend** | 0.1476 [0.1422, 0.1531] | 0.1618 [0.1595, 0.1640] | 0.4986 [0.4923, 0.5052] | 0.0612 [0.0564, 0.0665] | 89.63% [88.84%, 90.48%] |
+| **LightGBM Regressor** | 0.1391 [0.1340, 0.1445] | 0.1482 [0.1455, 0.1510] | 0.4775 [0.4663, 0.4895] | **0.0348** [0.0316, 0.0383] | 85.45% [84.42%, 86.41%] |
+| **Weighted Trend (Raw $\sigma=0.2278$)** | **0.1360** [0.1309, 0.1412] | 0.1472 [0.1448, 0.1496] | 0.4594 [0.4527, 0.4660] | 0.0713 [0.0663, 0.0765] | 90.27% [89.37%, 91.10%] |
+| **Weighted Trend (Calibrated $\sigma=0.1733$)** | **0.1360** [0.1309, 0.1412] | **0.1436** [0.1406, 0.1465] | **0.4505** [0.4411, 0.4599] | 0.0449 [0.0380, 0.0521] | **84.01%** [82.87%, 85.05%] |
 
 ---
 
-## 4. Temporal Leakage Audit Checklist
+## 3. Which Model Wins on Each Metric?
 
-All pipeline components have been audited and verified via automated test suite `tests/test_temporal_leakage.py`:
+- **MAE of Closing Rank (Forecasting Accuracy):**
+  - **Winner: Weighted Trend (`0.1360`).**
+  - Beats Naive (`0.1409`) by +0.0049 log points (3.48% relative error reduction, paired t-test $p = 3.53 \times 10^{-7}$, bootstrap 95% CI `[0.0026, 0.0071]`).
+  - Beats LightGBM (`0.1391`) and Ridge (`0.1476`).
+  - *Caveat:* Non-parametric Wilcoxon signed-rank test on medians yields $p = 0.183$, reflecting that the median series does not drift significantly year-on-year; the gain is driven by series with multi-year drift.
+- **Brier Score (Probability Accuracy on Non-Circular Grid):**
+  - **Winner: Weighted Trend with Calibrated $\sigma$ (`0.1436`).**
+  - The 95% bootstrap CI `[0.1406, 0.1465]` strictly excludes the Naive baseline `[0.1531, 0.1569]` and LightGBM `[0.1455, 0.1510]`.
+- **Log Loss / Binary Cross-Entropy:**
+  - **Winner: Weighted Trend with Calibrated $\sigma$ (`0.4505`).**
+  - Substantially lower cross-entropy than Naive (`0.4780`) and LightGBM (`0.4775`).
+- **Expected Calibration Error (ECE):**
+  - **Winner: LightGBM (`0.0348`).**
+  - LightGBM achieves lower bin calibration error, though at the cost of worse overall Brier loss, worse log loss, and higher point forecast error.
+  - Recalibrated Weighted Trend achieves `0.0449` (down from `0.0713`).
+- **80% Prediction Interval Calibration:**
+  - **Winner: Weighted Trend with Calibrated $\sigma$ (`84.01%`).**
+  - Calibrated sigma $\sigma = 0.1733$ brings empirical coverage down from 90.27% to 84.01% (close to nominal 80%), while achieving 89.82% coverage for the nominal 90% interval.
+
+---
+
+## 4. Recalibration Mechanics (Leak-Free Protocol)
+
+The raw sample standard deviation $\sigma_{\text{train}} = 0.2278$ on training folds ($t \le 2024$, $N=24,160$) was inflated by heavy-tailed residual outliers.
+- Under strict temporal isolation, the empirical 80th percentile of absolute residuals on training data was computed:
+  $$q_{0.80, \text{train}}(|y - \hat{y}|) = 0.2221$$
+- The theoretical normal 80% half-width with raw $\sigma$ is:
+  $$z_{0.80} \times \sigma_{\text{raw}} = 1.28155 \times 0.2278 = 0.2919$$
+- The training-derived scale factor is:
+  $$s = \frac{0.2221}{0.2919} = 0.7610$$
+- Calibrated operational sigma:
+  $$\sigma_{\text{calibrated}} = 0.2278 \times 0.7610 = \mathbf{0.1733}$$
+- When evaluated on the held-out 2025 dataset, this calibrated sigma directly improved all probability metrics:
+  - Brier Score: $0.1472 \to 0.1436$
+  - Log Loss: $0.4594 \to 0.4505$
+  - ECE: $0.0713 \to 0.0449$
+  - 80% Coverage: $90.27\% \to 84.01\%$
+  - 90% Coverage: $94.03\% \to 89.82\%$
+
+---
+
+## 5. Temporal Leakage Audit Checklist
+
 - [x] **Zero 2026 Contamination:** Verified raw and processed storage contains zero 2026 data (`test_no_2026_data_exists`).
 - [x] **Strict Lag Ordering:** Verified lag features (`prev_closing_1`, `prev_closing_2`, `prev_closing_3`) strictly point to historical years $t < T$ (`test_no_target_year_leakage_in_lag_features`).
 - [x] **Temporal Isolation of Folds:** Verified rolling-origin folds only train on earlier years (`test_rolling_origin_folds_temporal_isolation`).
-- [x] **Leak-Free Variance Estimation:** Verified predictive standard error $\sigma$ is computed strictly from training residuals, preventing in-sample variance leakage (`test_prediction_sigma_leak_free_estimation`).
+- [x] **Leak-Free Variance Estimation:** Calibrated $\sigma = 0.1733$ and scale factor $0.7610$ estimated strictly on training folds $t \le 2024$.

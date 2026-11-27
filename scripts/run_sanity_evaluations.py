@@ -22,7 +22,6 @@ root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-import pandas as pd
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.simulation import simulate_at_least_one_seat_probability
@@ -158,7 +157,7 @@ for tc in test_cases:
         print(f"Unreachable Alert: Choice #{first_95_cno} has P >= 95%. "
               f"Options sitting after it: {after_95_cnt} out of {total_cnt} choices.")
     else:
-        print(f"Unreachable Alert: None (No choice in list has P >= 95%). Options after 95%: 0.")
+        print("Unreachable Alert: None (No choice in list has P >= 95%). Options after 95%: 0.")
     print("-" * 85)
 
     if df.empty:

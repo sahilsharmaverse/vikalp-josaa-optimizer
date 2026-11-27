@@ -18,7 +18,7 @@ PATTERNS = {
 def scan_working_tree():
     print("=== SCANNING WORKING TREE ===")
     findings = []
-    
+
     # Check for .env files
     for root, dirs, files in os.walk(ROOT_DIR):
         # Skip .git and .venv
@@ -26,7 +26,7 @@ def scan_working_tree():
         for f in files:
             if ".env" in f.lower():
                 findings.append(("ENV_FILE", os.path.join(root, f), 0, f"Found env file: {f}"))
-            
+
             fpath = Path(root) / f
             # Check text files only
             if fpath.suffix.lower() in [".py", ".md", ".txt", ".csv", ".json", ".yaml", ".yml", ".ini", ".toml", ".html", ".css", ".sh", ".bat"]:
@@ -48,14 +48,14 @@ def scan_working_tree():
                                     if matches:
                                         rel_path = fpath.relative_to(ROOT_DIR)
                                         findings.append((p_name, str(rel_path), line_num, f"{line.strip()[:100]} (Matches: {matches})"))
-                except Exception as e:
+                except Exception:
                     pass
     return findings
 
 def scan_git_history():
     print("\n=== SCANNING GIT COMMIT HISTORY ===")
     history_findings = []
-    
+
     # 1. Search git log diffs for local paths
     try:
         cmd = ["git", "log", "-S", "Users", "-p", "--oneline"]
@@ -79,7 +79,7 @@ def scan_git_history():
                     history_findings.append((f"GIT_LOG_KEYWORD_{kw.upper()}", l))
         except Exception:
             pass
-            
+
     return history_findings
 
 if __name__ == "__main__":
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     print(f"Working tree findings: {len(wt_findings)}")
     for kind, path, line, detail in wt_findings:
         print(f"[{kind}] {path}:{line} -> {detail}")
-        
+
     git_findings = scan_git_history()
     print(f"\nGit history findings: {len(git_findings)}")
     for kind, detail in git_findings[:25]:

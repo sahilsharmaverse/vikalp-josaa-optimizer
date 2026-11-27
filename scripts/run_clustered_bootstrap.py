@@ -108,7 +108,7 @@ def run_clustered_bootstrap(b_iterations: int = 1000, seed: int = 42):
             all_p.extend([p] * len(y_h))
             all_a_t.extend((ln_r_t <= y_t).astype(float))
             all_a_n.extend((ln_r_n <= y_t).astype(float))
-        
+
         arr_p = np.array(all_p)
         brier_t = np.mean((arr_p - np.array(all_a_t))**2)
         brier_n = np.mean((arr_p - np.array(all_a_n))**2)
@@ -140,10 +140,10 @@ def run_clustered_bootstrap(b_iterations: int = 1000, seed: int = 42):
     for b in range(b_iterations):
         if (b + 1) % 200 == 0:
             print(f"  Iteration {b + 1}/{b_iterations}...")
-        
+
         # Sample clusters with replacement
         sample_keys = np.random.choice(cluster_keys, size=num_clusters, replace=True)
-        
+
         # Aggregate sampled cluster arrays
         b_y_true = np.concatenate([cluster_arrays[k]["y_true"] for k in sample_keys])
         b_c_true = np.concatenate([cluster_arrays[k]["c_true"] for k in sample_keys])
@@ -157,7 +157,7 @@ def run_clustered_bootstrap(b_iterations: int = 1000, seed: int = 42):
 
     summary = {}
     print("\n" + "=" * 75)
-    print(f"CANONICAL EVALUATION METRICS (2025 HELD-OUT BACKTEST) WITH 95% CLUSTERED CIs")
+    print("CANONICAL EVALUATION METRICS (2025 HELD-OUT BACKTEST) WITH 95% CLUSTERED CIs")
     print("=" * 75)
     print(f"{'Metric':<32} | {'Point Estimate':<15} | {'95% CI (Bootstrap)':<22}")
     print("-" * 75)

@@ -202,7 +202,7 @@ def build_parent_trend_chart(
 # Global Data & Setup
 history_df = load_historical_data()
 model_metrics = get_model_metrics()
-model_sigma = float(model_metrics.get("sigma", 0.2164))
+model_sigma = float(model_metrics.get("sigma", 0.2278))
 
 ALL_STATES = [
     "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh",
@@ -816,7 +816,7 @@ with tab_method:
             <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-radius:12px; padding:18px; font-size:13.5px; line-height:1.6; color:#334155;">
               <div style="font-weight:700; color:#0F172A; margin-bottom:8px;">📊 Plain Facts on Prediction Accuracy:</div>
               <div>• <strong>Better than just copying last year:</strong> Our weighted trend improved cutoff accuracy over last year's cutoff alone by 0.0049 log points (~1% closer, with a median error of only 8.99%).</div>
-              <div>• <strong>80% Confidence Band:</strong> <strong>89.18%</strong> of actual 2025 last-seat cutoffs landed inside our predicted 80% range.</div>
+              <div>• <strong>80% Confidence Band:</strong> <strong>90.26%</strong> of actual 2025 last-seat cutoffs landed inside our predicted 80% range.</div>
               <div>• <strong>No fake optimism:</strong> When we told students they had a 70% chance, about 7 out of 10 actually got in.</div>
             </div>
             """,
@@ -845,7 +845,7 @@ with tab_method:
             - **Portfolio Simulation:** 2,000 correlated Gaussian draws with cross-option correlation $\rho = 0.50$.
 
             ##### Brier Score Reconciliation
-            - **Integrated Support Brier Score (0.0869):** Evaluates the entire standardized rank spectrum ($z \in [-2.5, +2.5]$) across all 9,336 programs in the held-out 2025 dataset.
+            - **Integrated Support Brier Score (0.0842):** Evaluates the entire standardized rank spectrum ($z \in [-2.5, +2.5]$) across all 9,336 programs in the held-out 2025 dataset under strict leak-free variance estimation.
             - **Applicant-Rank Brier Score (0.0225):** Evaluated at fixed candidate ranks where choices naturally cluster into the tails ($P \approx 0$ or $P \approx 1$), which mechanically lowers the numerical score. Both benchmarks confirm well-calibrated probabilities.
             """
         )

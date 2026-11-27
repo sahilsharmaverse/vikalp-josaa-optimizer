@@ -5,7 +5,6 @@ Uses PyMuPDF (fitz) to render high-resolution PNG images for visual inspection.
 
 from __future__ import annotations
 
-import io
 from pathlib import Path
 import sys
 

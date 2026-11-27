@@ -2,9 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import io
 import pypdf
-import pandas as pd
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.pdf_report import build_pdf_report
@@ -62,7 +60,7 @@ for name, prof, pdf_filename in profiles:
     print(f"\n--- {name} ---")
     df = build_list(prof)
     total_choices = len(df)
-    
+
     if not df.empty:
         counts = df["label"].value_counts().to_dict()
         dream_count = counts.get("Dream", 0)
@@ -79,7 +77,7 @@ for name, prof, pdf_filename in profiles:
     print(f"Dream: {dream_count} | Target: {target_count} | Safe: {safe_count}")
     print(f"Lowest Probability: {f'{lowest_prob:.4f}' if lowest_prob is not None else 'N/A'}")
     print(f"'< 5 Safe choices' Warning: {'TRIGGERED' if warning_triggered else 'NOT TRIGGERED'}")
-    
+
     # Calculate portfolio chance
     seat_chance = (
         simulate_at_least_one_seat_probability(
@@ -93,12 +91,12 @@ for name, prof, pdf_filename in profiles:
         if not df.empty
         else 0.0
     )
-    
+
     # Generate PDF report
     pdf_bytes = build_pdf_report(df, prof, seat_chance=seat_chance)
     pdf_path = output_dir / pdf_filename
     pdf_path.write_bytes(pdf_bytes)
-    
+
     # Confirm PDF opens and is non-empty
     file_size = pdf_path.stat().st_size
     assert file_size > 0, f"PDF file {pdf_filename} is empty!"

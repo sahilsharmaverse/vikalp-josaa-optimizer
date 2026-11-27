@@ -168,7 +168,7 @@ def test_validation_monotonicity_strict_mode(cutoffs_data):
 def test_property_monotonic_rank_probability():
     """Property: A strictly better (smaller) rank must yield >= probability for every option."""
     y_hat = float(np.log(10000.0))
-    sigma = 0.2164
+    sigma = 0.2278
 
     ranks = [50000, 30000, 15000, 10000, 8000, 5000, 2000, 500, 50]
     probs = [admit_probability(r, y_hat, sigma) for r in ranks]

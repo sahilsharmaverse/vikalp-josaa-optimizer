@@ -4,7 +4,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pypdf
-import pandas as pd
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.pdf_report import build_pdf_report
@@ -32,7 +31,7 @@ reader1 = pypdf.PdfReader(io.BytesIO(pdf1_bytes))
 text1 = " ".join([p.extract_text() for p in reader1.pages])
 pdf_warning1 = "few or no safe options" in text1
 
-print(f"Profile 1 (Low-Rank: CRL 45,000, CSE):")
+print("Profile 1 (Low-Rank: CRL 45,000, CSE):")
 print(f"  Choices: {len(df1)} (Dream: {dream1}, Target: {target1}, Safe: {safe1})")
 print(f"  UI Warning Triggered: {ui_warning1}")
 print(f"  PDF Warning Triggered: {pdf_warning1}")
@@ -60,7 +59,7 @@ reader2 = pypdf.PdfReader(io.BytesIO(pdf2_bytes))
 text2 = " ".join([p.extract_text() for p in reader2.pages])
 pdf_warning2 = "few or no safe options" in text2
 
-print(f"\nProfile 2 (High-Rank: CRL 25,000, general):")
+print("\nProfile 2 (High-Rank: CRL 25,000, general):")
 print(f"  Choices: {len(df2)} (Dream: {dream2} [{dream2/len(df2):.1%}], Target: {target2} [{target2/len(df2):.1%}], Safe: {safe2} [{safe2/len(df2):.1%}])")
 print(f"  UI Warning Triggered: {ui_warning2}")
 print(f"  PDF Warning Triggered: {pdf_warning2}")

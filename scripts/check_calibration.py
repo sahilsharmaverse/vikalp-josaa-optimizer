@@ -108,7 +108,7 @@ def evaluate_calibration():
     scale_factor = q80 / (z_80 * current_sigma)
     new_sigma = scale_factor * current_sigma
 
-    print(f"\nPROPOSED SIGMA RESCALING:")
+    print("\nPROPOSED SIGMA RESCALING:")
     print(f"Empirical 80th percentile of |residual| in 2025: {q80:.4f}")
     print(f"Theoretical 80th percentile with sigma={current_sigma:.4f}: {z_80 * current_sigma:.4f}")
     print(f"Proposed Scale Factor (fitted on 2025): {scale_factor:.4f}")

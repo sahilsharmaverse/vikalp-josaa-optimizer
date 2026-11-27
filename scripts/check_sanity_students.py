@@ -9,7 +9,6 @@ root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-import pandas as pd
 from src.eligibility import StudentProfile
 from src.optimize import build_list
 from src.simulation import simulate_at_least_one_seat_probability
@@ -99,13 +98,13 @@ for s in students:
         p_str = f"{r['probability']:.1%}"
         warn_str = f" [WARN: {r['warning']}]" if r["warning"] else ""
         print(f"#{int(r['choice_no'])}: {r['institute']} | {r['program']} | {r['quota']} {r['seat_type']} ({r['gender']}) | P={p_str} [{r['label']}]{warn_str}")
-    
+
     # Anomaly checks:
     # 1. Any probability exactly 0 or 1?
     exact_0_1 = df[(df["probability"] <= 0.0) | (df["probability"] >= 1.0)]
     if not exact_0_1.empty:
         print(f"  FLAG: Found {len(exact_0_1)} options with probability exactly 0 or 1!")
-    
+
     # 2. Category rank check: For category seats, is student_rank equal to category_rank?
     if p.category != "OPEN":
         cat_rows = df[df["seat_type"] == p.category]

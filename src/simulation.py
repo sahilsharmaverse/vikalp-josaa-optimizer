@@ -25,9 +25,9 @@ def get_model_metrics() -> dict:
     metrics_path = Path(__file__).resolve().parent.parent / "models" / "metrics.json"
     default_metrics = {
         "val_year": 2025,
-        "mae": 0.1393,
-        "sigma": 0.2285,
-        "coverage_80": 0.9006,
+        "mae": 0.1360,
+        "sigma": 0.2278,
+        "coverage_80": 0.9026,
         "model_name": "Weighted Trend Predictor (weights 0.5, 0.3, 0.2)",
     }
     if metrics_path.exists():
@@ -41,7 +41,7 @@ def get_model_metrics() -> dict:
     return default_metrics
 
 
-def get_model_sigma(default: float = 0.2285) -> float:
+def get_model_sigma(default: float = 0.2278) -> float:
     """Read calibrated residual standard error from saved model metrics."""
     return float(get_model_metrics().get("sigma", default))
 

@@ -49,7 +49,7 @@ def run_validation():
     # 1. Primary Backtest: Predict 2025 (Trained on 2021-2024)
     print("\n--- STEP 1: PRIMARY HELD-OUT BACKTEST (2025) ---")
     df_2025 = df[df["year"] == 2025].copy()
-    
+
     # Compute predictions using available historical lag features
     # (prev_closing_1 = 2024, prev_closing_2 = 2023, prev_closing_3 = 2022)
     df_2025["y_hat"] = compute_weighted_log_trend(
@@ -144,7 +144,7 @@ def run_validation():
 
     # Reliability Plot
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5), dpi=150)
-    
+
     # Left: Reliability Curve
     valid_calib = calib_df.dropna(subset=["observed_frequency"])
     ax1.plot([0, 1], [0, 1], "k--", label="Perfect Calibration (Ideal)")
@@ -188,16 +188,16 @@ def run_validation():
         )
         target_df["y_naive"] = np.where(target_df["prev_closing_1"] > 0, np.log(target_df["prev_closing_1"]), np.nan)
         v = target_df[target_df["y_hat"].notna() & target_df["log_closing_rank"].notna()].copy()
-        
+
         y_t = v["log_closing_rank"].values
         y_h = v["y_hat"].values
         y_n = v["y_naive"].values
-        
+
         m_log = float(np.mean(np.abs(y_t - y_h)))
         n_log = float(np.mean(np.abs(y_t - y_n)))
         sig = float(np.std(y_t - y_h, ddof=1))
         cov = float(np.mean((y_t >= (y_h - Z_80 * sig)) & (y_t <= (y_h + Z_80 * sig))))
-        
+
         # Brier score
         z_sample = np.linspace(-2.0, 2.0, 11)
         preds_roll, acts_roll = [], []
@@ -227,7 +227,7 @@ def run_validation():
     # 3. Residual Sigma per Group & Sparse History Analysis
     print("\n--- STEP 3: RESIDUAL SIGMA ESTIMATION BY GROUP ---")
     group_results = []
-    
+
     # By Institute Tier
     for inst_t in ["IIT", "NIT", "IIIT", "GFTI"]:
         sub = eval_df[eval_df["institute_type"] == inst_t]
@@ -257,10 +257,10 @@ def run_validation():
     # By History Tier (Sparse < 3 yrs vs Full >= 3 yrs)
     sparse_sub = eval_df[eval_df["years_of_history"] < 3]
     full_sub = eval_df[eval_df["years_of_history"] >= 3]
-    
+
     err_sparse = sparse_sub["log_closing_rank"].values - sparse_sub["y_hat"].values
     err_full = full_sub["log_closing_rank"].values - full_sub["y_hat"].values
-    
+
     sig_sparse = float(np.std(err_sparse, ddof=1)) if len(sparse_sub) > 10 else sigma_overall
     sig_full = float(np.std(err_full, ddof=1)) if len(full_sub) > 10 else sigma_overall
 
@@ -323,7 +323,7 @@ def run_validation():
     p_20k = simulate_at_least_one_seat_probability(test_ranks, test_yhats, sigma=sigma_overall, rho=0.5, n_sims=20000, seed=42)
     t_20k = time.perf_counter() - t0
 
-    print(f"\nConvergence Check:")
+    print("\nConvergence Check:")
     print(f"  2,000 runs : P = {p_2k:.4f} (took {t_2k*1000:.1f} ms)")
     print(f"  20,000 runs: P = {p_20k:.4f} (took {t_20k*1000:.1f} ms)")
     print(f"  Absolute Delta: {abs(p_2k - p_20k):.4f} ({abs(p_2k - p_20k)*100:.2f} percentage points)")

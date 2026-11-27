@@ -12,7 +12,6 @@ Runs accessibility analysis via DOM inspection and contrast checks.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 import time
 from playwright.sync_api import sync_playwright

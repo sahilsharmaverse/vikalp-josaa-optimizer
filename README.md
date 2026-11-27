@@ -1,7 +1,7 @@
 # 🎯 Vikalp: JoSAA Admission-Probability Engine & Choice Optimizer
 
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/pytest-171%20passed-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/pytest-173%20passed-brightgreen.svg)](tests/)
 [![Type Checked](https://img.shields.io/badge/mypy-checked-blue.svg)](src/)
 [![Code Style](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -160,8 +160,7 @@ vikalp/
 │   └── raw/              # Raw JoSAA PDF/HTML archives (2021-2025)
 ├── docs/
 │   ├── MODEL_CARD.md     # Formal Model Card (Mitchell et al. 2019)
-│   ├── DATA_CARD.md      # Formal Data Card (Gebru et al. 2021)
-│   └── RESUME_FACTS.md   # Audited metric evidence pack & interview Q&As
+│   └── DATA_CARD.md      # Formal Data Card (Gebru et al. 2021)
 ├── notebooks/
 │   ├── 01_eda.ipynb      # EDA, missingness, drift, and category behavior
 │   └── 02_modeling_and_validation.ipynb  # Folds, conformal, calibration
@@ -172,8 +171,18 @@ vikalp/
 ├── results/              # JSON experiment tracking logs
 ├── scripts/              # Standalone statistical validation scripts
 ├── src/                  # Core engine: baseline, predict, simulation, optimize
-└── tests/                # 171 automated tests (temporal leakage, fuzz, regression)
+└── tests/                # Automated tests (temporal leakage, fuzz, regression)
 ```
+
+---
+
+## ⚠️ 8. Honest Limitations & Boundary Conditions
+
+To maintain engineering integrity and parental trust, Vikalp explicitly documents three operational boundaries:
+
+1. **No 2026 Data:** JoSAA 2026 counseling has not yet taken place. All forecasts, intervals, and probabilities are strictly conditioned on historical trends from 2021 through 2025 ($N = 44,637$ offerings). Anyone promising exact 2026 cutoffs is guessing.
+2. **No Real-Time Seat Matrix Changes:** Closing cutoffs cannot anticipate unannounced seat expansions, new branch inaugurations, or seat matrix restructurings until JoSAA officially releases the upcoming cycle's seat matrix.
+3. **Modest Improvement Over Naive Baseline:** On held-out 2025 data, Vikalp's Weighted Trend model improves log-rank MAE by **+0.0049** log points (~1.2% relative gain) over the simple last-year naive baseline. While this improvement is statistically significant ($p < 0.001$, 95% bootstrap CI `[0.0026, 0.0071]`), predicting cutoff ranks is fundamentally bounded: last year's cutoff already accounts for $>96\%$ of variance. The primary engineering value is not magical clairvoyance, but rigorous uncertainty quantification, conformal intervals, and copula-based portfolio risk protection.
 
 ---
 

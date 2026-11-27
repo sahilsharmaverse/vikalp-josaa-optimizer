@@ -48,3 +48,7 @@ scratch/
 outputs/ui/
 outputs/*.tmp
 outputs/*.pdf
+
+# Personal preparation notes
+.prep_notes/
+docs/RESUME_FACTS.md

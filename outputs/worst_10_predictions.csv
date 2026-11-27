@@ -1,0 +1,11 @@
+institute,program,quota,seat_type,gender,closing_rank,pred_closing_rank,prev_closing_1,prev_closing_2,abs_error_log,rel_error
+Indian Institute of Technology Madras,Aerospace Engineering) (Dual Degree),AI,OPEN,Female-only,16,3858,2184.0,6279.0,5.485282699077693,240.11709794524975
+"National Institute of Technology, Mizoram",Computer Science and Engineering,HS,OPEN,Female-only,10020850,510987,544345.0,516872.0,2.9760794912261126,0.9490076415208474
+National Institute of Technology Sikkim,Civil Engineering,HS,OPEN,Gender-Neutral,629625,6531272,13681290.0,10059180.0,2.339232646034347,9.373273535308131
+National Institute of Technology Goa,Electrical and Electronics Engineering,HS,ST,Gender-Neutral,25884,3139,3139.0,,2.109720739335204,0.8787281718436101
+"Dr. B R Ambedkar National Institute of Technology, Jalandhar",Mechanical Engineering,HS,ST,Gender-Neutral,43332,5752,5752.0,,2.019343771664575,0.86725745407551
+National Institute of Technology Sikkim,Civil Engineering,HS,OPEN,Female-only,366127,2695177,10949610.0,953240.0,1.9962389932190963,6.361318003117988
+"Dr. B R Ambedkar National Institute of Technology, Jalandhar",Electronics and VLSI Engineering,HS,SC,Gender-Neutral,849,5933,6917.0,4594.0,1.9442166002824086,5.988155191301304
+Malaviya National Institute of Technology Jaipur,Artificial Intelligence and Data Engineering,HS,SC,Female-only,456,3175,3147.0,3221.0,1.940427932150068,5.961729481156679
+National Institute of Technology Calicut,Engineering Physics,HS,ST,Gender-Neutral,18652,2858,1685.0,1952.0,1.8758530370977242,0.8467757948506927
+National Institute of Technology Sikkim,Computer Science and Engineering,HS,SC,Gender-Neutral,9395,59252,113186.0,18250.0,1.8416194698147965,5.30674357604747

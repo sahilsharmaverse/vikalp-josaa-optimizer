@@ -1,13 +1,13 @@
-"""Design Tokens and Accessible Component Helpers for Vikalp.
+"""Design Tokens and Plain-Language Component Helpers for Vikalp.
 
-High-trust, light-theme default design system built on:
-- WCAG AA contrast (>= 4.5:1 for normal text, >= 3.0:1 for large/graphical).
-- 8px spatial grid.
-- Semantic colors strictly mapped to meaning:
-  - Dream: Amber (#B45309 text on #FEF3C7)
-  - Target: Blue (#1D4ED8 text on #DBEAFE)
-  - Safe: Green (#15803D text on #DCFCE7)
-- Tabular numerals for ranks and percentages.
+High-trust, Stripe/Linear-grade design system:
+- English only, zero Devanagari text.
+- Plain language for a 10th-grade student and worried parent.
+- Semantic categories:
+  - Reach (formerly Dream): Amber
+  - Good fit (formerly Target): Blue
+  - Likely (formerly Safe): Green
+- WCAG AA contrast (>= 4.5:1 for normal text).
 """
 
 from __future__ import annotations
@@ -29,9 +29,9 @@ TOKENS = {
     "border_focus": "#2563EB",   # Blue 600
 
     # Text
-    "text_primary": "#0F172A",   # Slate 900 (Contrast on #FFFFFF: 18.7:1)
-    "text_secondary": "#334155", # Slate 700 (Contrast on #FFFFFF: 8.8:1)
-    "text_muted": "#475569",     # Slate 600 (Contrast on #FFFFFF: 5.5:1)
+    "text_primary": "#0F172A",   # Slate 900 (Contrast on #FFFFFF: 17.8:1)
+    "text_secondary": "#334155", # Slate 700 (Contrast on #FFFFFF: 10.3:1)
+    "text_muted": "#475569",     # Slate 600 (Contrast on #FFFFFF: 7.5:1)
     "text_caption": "#64748B",   # Slate 500 (Contrast on #FFFFFF: 4.6:1)
 
     # Accent (Brand)
@@ -40,30 +40,30 @@ TOKENS = {
     "brand_light": "#EFF6FF",    # Blue 50
     "brand_border": "#BFDBFE",   # Blue 200
 
-    # Semantic Tiers
-    "dream_text": "#92400E",     # Amber 800 (Contrast on #FEF3C7: 6.2:1)
-    "dream_bg": "#FEF3C7",       # Amber 100
-    "dream_border": "#FDE68A",   # Amber 200
-    "dream_solid": "#D97706",    # Amber 600
+    # Semantic Categories: Reach, Good fit, Likely
+    "reach_text": "#92400E",     # Amber 800 (Contrast on #FEF3C7: 6.3:1)
+    "reach_bg": "#FEF3C7",       # Amber 100
+    "reach_border": "#FDE68A",   # Amber 200
+    "reach_solid": "#D97706",    # Amber 600
 
-    "target_text": "#1E40AF",    # Blue 800 (Contrast on #DBEAFE: 6.9:1)
-    "target_bg": "#DBEAFE",      # Blue 100
-    "target_border": "#BFDBFE",  # Blue 200
-    "target_solid": "#2563EB",   # Blue 600
+    "goodfit_text": "#1E40AF",   # Blue 800 (Contrast on #DBEAFE: 7.1:1)
+    "goodfit_bg": "#DBEAFE",     # Blue 100
+    "goodfit_border": "#BFDBFE", # Blue 200
+    "goodfit_solid": "#2563EB",  # Blue 600
 
-    "safe_text": "#166534",      # Green 800 (Contrast on #DCFCE7: 6.3:1)
-    "safe_bg": "#DCFCE7",        # Green 100
-    "safe_border": "#BBF7D0",    # Green 200
-    "safe_solid": "#16A34A",     # Green 600
+    "likely_text": "#166534",    # Green 800 (Contrast on #DCFCE7: 6.4:1)
+    "likely_bg": "#DCFCE7",      # Green 100
+    "likely_border": "#BBF7D0",  # Green 200
+    "likely_solid": "#16A34A",   # Green 600
 
     # Callouts
     "callout_warn_bg": "#FFFBEB",
     "callout_warn_border": "#FCD34D",
     "callout_warn_text": "#92400E",
 
-    "callout_info_bg": "#F0FDF4",
-    "callout_info_border": "#86EFAC",
-    "callout_info_text": "#166534",
+    "callout_info_bg": "#EFF6FF",
+    "callout_info_border": "#93C5FD",
+    "callout_info_text": "#1E40AF",
 
     "callout_neutral_bg": "#F8FAFC",
     "callout_neutral_border": "#E2E8F0",
@@ -103,9 +103,9 @@ def verify_design_tokens_contrast() -> List[Tuple[str, str, str, float, bool]]:
         ("Text Primary on Surface", TOKENS["text_primary"], TOKENS["bg_surface"], 4.5),
         ("Text Secondary on Surface", TOKENS["text_secondary"], TOKENS["bg_surface"], 4.5),
         ("Text Muted on Surface", TOKENS["text_muted"], TOKENS["bg_surface"], 4.5),
-        ("Dream Text on Dream Bg", TOKENS["dream_text"], TOKENS["dream_bg"], 4.5),
-        ("Target Text on Target Bg", TOKENS["target_text"], TOKENS["target_bg"], 4.5),
-        ("Safe Text on Safe Bg", TOKENS["safe_text"], TOKENS["safe_bg"], 4.5),
+        ("Reach Text on Reach Bg", TOKENS["reach_text"], TOKENS["reach_bg"], 4.5),
+        ("Good Fit Text on Good Fit Bg", TOKENS["goodfit_text"], TOKENS["goodfit_bg"], 4.5),
+        ("Likely Text on Likely Bg", TOKENS["likely_text"], TOKENS["likely_bg"], 4.5),
         ("Brand Text on Brand Light", TOKENS["brand_deep"], TOKENS["brand_light"], 4.5),
         ("Callout Warn Text on Warn Bg", TOKENS["callout_warn_text"], TOKENS["callout_warn_bg"], 4.5),
         ("Callout Info Text on Info Bg", TOKENS["callout_info_text"], TOKENS["callout_info_bg"], 4.5),
@@ -118,88 +118,49 @@ def verify_design_tokens_contrast() -> List[Tuple[str, str, str, float, bool]]:
     return results
 
 
-# Component HTML Generators
+def normalize_tier_name(tier_raw: str) -> str:
+    """Map legacy model tier names to friendly plain English names."""
+    norm = str(tier_raw).strip().capitalize()
+    if norm in ["Dream", "Reach"]:
+        return "Reach"
+    elif norm in ["Safe", "Likely"]:
+        return "Likely"
+    return "Good fit"
 
-def render_badge(label: str, prob: Optional[float] = None, show_icon: bool = True) -> str:
-    """Render accessible semantic tier badge (Dream = Amber, Target = Blue, Safe = Green)."""
-    norm = label.strip().capitalize()
-    if norm == "Dream":
-        bg = TOKENS["dream_bg"]
-        color = TOKENS["dream_text"]
-        border = TOKENS["dream_border"]
-        icon = "⭐ " if show_icon else ""
-        hi_label = "सपना"
-    elif norm == "Safe":
-        bg = TOKENS["safe_bg"]
-        color = TOKENS["safe_text"]
-        border = TOKENS["safe_border"]
-        icon = "🛡️ " if show_icon else ""
-        hi_label = "सुरक्षित"
-    else:  # Target
-        bg = TOKENS["target_bg"]
-        color = TOKENS["target_text"]
-        border = TOKENS["target_border"]
-        icon = "🎯 " if show_icon else ""
-        hi_label = "लक्ष्य"
 
+def get_tier_colors(tier_name: str) -> Tuple[str, str, str, str]:
+    """Return (bg, text, border, solid) for a tier name."""
+    t = normalize_tier_name(tier_name)
+    if t == "Reach":
+        return TOKENS["reach_bg"], TOKENS["reach_text"], TOKENS["reach_border"], TOKENS["reach_solid"]
+    elif t == "Likely":
+        return TOKENS["likely_bg"], TOKENS["likely_text"], TOKENS["likely_border"], TOKENS["likely_solid"]
+    else:
+        return TOKENS["goodfit_bg"], TOKENS["goodfit_text"], TOKENS["goodfit_border"], TOKENS["goodfit_solid"]
+
+
+def render_badge(tier_raw: str, prob: Optional[float] = None) -> str:
+    """Render friendly semantic category badge (Reach, Good fit, Likely)."""
+    t_name = normalize_tier_name(tier_raw)
+    bg, color, border, _ = get_tier_colors(t_name)
     prob_str = f" · {prob:.0%}" if prob is not None else ""
     return (
         f'<span class="vk-badge" style="background:{bg}; border:1px solid {border}; color:{color};">'
-        f'{icon}<strong>{norm}</strong> / {hi_label}{prob_str}'
+        f'<strong>{t_name}</strong>{prob_str}'
         f'</span>'
     )
 
 
-def render_confidence_bar(prob: float, tier: str) -> str:
-    """Render a compact horizontal confidence bar with tabular probability label."""
-    norm = tier.strip().capitalize()
-    fill_color = (
-        TOKENS["dream_solid"]
-        if norm == "Dream"
-        else TOKENS["safe_solid"]
-        if norm == "Safe"
-        else TOKENS["target_solid"]
-    )
+def render_probability_meter(prob: float, tier_name: str = "Good fit") -> str:
+    """Render clean horizontal probability meter with tabular percentage."""
+    _, _, _, fill_col = get_tier_colors(tier_name)
     pct = max(0.0, min(100.0, prob * 100.0))
     return (
-        f'<div class="vk-conf-wrapper">'
-        f'  <div class="vk-conf-track">'
-        f'    <div class="vk-conf-fill" style="width:{pct:.1f}%; background:{fill_color};"></div>'
+        f'<div class="vk-meter-wrap">'
+        f'  <div class="vk-meter-track">'
+        f'    <div class="vk-meter-fill" style="width:{pct:.1f}%; background:{fill_col};"></div>'
         f'  </div>'
-        f'  <span class="vk-conf-num tabular-num">{pct:.0f}%</span>'
-        f'</div>'
-    )
-
-
-def render_stat_card(
-    title: str,
-    title_hi: str,
-    value: str,
-    subtext: str,
-    variant: str = "default",
-    icon: str = "",
-) -> str:
-    """Render a high-trust headline stat card."""
-    border_accent = ""
-    if variant == "dream":
-        border_accent = f"border-top: 3px solid {TOKENS['dream_solid']};"
-    elif variant == "target":
-        border_accent = f"border-top: 3px solid {TOKENS['target_solid']};"
-    elif variant == "safe":
-        border_accent = f"border-top: 3px solid {TOKENS['safe_solid']};"
-    elif variant == "brand":
-        border_accent = f"border-top: 3px solid {TOKENS['brand_primary']};"
-
-    icon_html = f'<span class="vk-stat-icon">{icon}</span>' if icon else ""
-
-    return (
-        f'<div class="vk-stat-card" style="{border_accent}">'
-        f'  <div class="vk-stat-header">'
-        f'    <span class="vk-stat-title">{title} <span class="vk-stat-hi">/ {title_hi}</span></span>'
-        f'    {icon_html}'
-        f'  </div>'
-        f'  <div class="vk-stat-value tabular-num">{value}</div>'
-        f'  <div class="vk-stat-subtext">{subtext}</div>'
+        f'  <span class="vk-meter-num tabular-num">{pct:.0f}%</span>'
         f'</div>'
     )
 
@@ -208,9 +169,9 @@ def render_callout(
     title: str,
     body: str,
     variant: str = "warn",
-    icon: str = "⚠️",
+    icon: str = "ℹ️",
 ) -> str:
-    """Render a calm, accessible callout box."""
+    """Render calm, accessible notification card."""
     if variant == "warn":
         bg = TOKENS["callout_warn_bg"]
         border = TOKENS["callout_warn_border"]
@@ -225,33 +186,33 @@ def render_callout(
         text_col = TOKENS["callout_neutral_text"]
 
     return (
-        f'<div class="vk-callout" style="background:{bg}; border-left: 4px solid {border}; color:{text_col};">'
+        f'<div class="vk-callout" style="background:{bg}; border: 1px solid {border}; border-left: 4px solid {border}; color:{text_col};">'
         f'  <div class="vk-callout-title">{icon} {title}</div>'
         f'  <div class="vk-callout-body">{body}</div>'
         f'</div>'
     )
 
 
-def render_stepper(current_step: int, steps: List[str]) -> str:
-    """Render a clean 3-step progress indicator."""
-    items = []
-    for idx, name in enumerate(steps, start=1):
-        if idx < current_step:
-            state = "completed"
-            marker = "✓"
-        elif idx == current_step:
-            state = "active"
-            marker = str(idx)
-        else:
-            state = "pending"
-            marker = str(idx)
+def render_segment_bar(reach_cnt: int, good_cnt: int, likely_cnt: int) -> str:
+    """Render 3-segment horizontal bar showing list balance."""
+    total = reach_cnt + good_cnt + likely_cnt
+    if total == 0:
+        total = 1
+    pct_r = (reach_cnt / total) * 100
+    pct_g = (good_cnt / total) * 100
+    pct_l = (likely_cnt / total) * 100
 
-        items.append(
-            f'<div class="vk-step-item vk-step-{state}">'
-            f'  <span class="vk-step-badge">{marker}</span>'
-            f'  <span class="vk-step-name">{name}</span>'
-            f'</div>'
-        )
-
-    joined = ' <div class="vk-step-divider"></div> '.join(items)
-    return f'<div class="vk-stepper">{joined}</div>'
+    return (
+        f'<div class="vk-segment-container">'
+        f'  <div class="vk-segment-bar">'
+        f'    <div class="vk-seg vk-seg-reach" style="width:{pct_r:.1f}%;" title="Reach: {reach_cnt}"></div>'
+        f'    <div class="vk-seg vk-seg-goodfit" style="width:{pct_g:.1f}%;" title="Good fit: {good_cnt}"></div>'
+        f'    <div class="vk-seg vk-seg-likely" style="width:{pct_l:.1f}%;" title="Likely: {likely_cnt}"></div>'
+        f'  </div>'
+        f'  <div class="vk-segment-legend">'
+        f'    <span class="vk-legend-item"><span class="vk-dot" style="background:{TOKENS["reach_solid"]};"></span>Reach: <strong>{reach_cnt}</strong></span>'
+        f'    <span class="vk-legend-item"><span class="vk-dot" style="background:{TOKENS["goodfit_solid"]};"></span>Good fit: <strong>{good_cnt}</strong></span>'
+        f'    <span class="vk-legend-item"><span class="vk-dot" style="background:{TOKENS["likely_solid"]};"></span>Likely: <strong>{likely_cnt}</strong></span>'
+        f'  </div>'
+        f'</div>'
+    )

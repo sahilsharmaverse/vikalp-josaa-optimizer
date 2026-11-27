@@ -263,13 +263,18 @@ def generate_quick_facts(
             )
 
     # 2. Tier Diversity Fact
-    tiers = [str(r.get(label_col, r.get("label", ""))) for r in rows]
+    tiers = [
+        "Reach" if str(r.get(label_col, r.get("label", ""))) in ["Dream", "Reach"]
+        else "Likely" if str(r.get(label_col, r.get("label", ""))) in ["Safe", "Likely"]
+        else "Good fit"
+        for r in rows
+    ]
     unique_tiers = sorted(list(set(tiers)))
     if len(unique_tiers) > 1:
         tier_summary = ", ".join(f"Choice #{c} is {t}" for c, t in zip(choice_nos, tiers))
-        facts.append(f"Strategic risk tier mix: {tier_summary}.")
+        facts.append(f"Balance of choices: {tier_summary}.")
     else:
-        facts.append(f"All selected options belong to the {unique_tiers[0]} tier.")
+        facts.append(f"All selected choices belong to the {unique_tiers[0]} category.")
 
     # 3. 5-Year Cutoff Trend Facts
     for r, t in zip(rows, trends):
@@ -277,15 +282,15 @@ def generate_quick_facts(
         badge = t.get("badge", "")
         if badge == TREND_GETTING_HARDER:
             facts.append(
-                f"Choice #{c_no}'s cutoff has been getting harder (closing rank numbers decreasing)."
+                f"Choice #{c_no}'s last seat rank has been getting harder (rank numbers decreasing)."
             )
         elif badge == TREND_GETTING_EASIER:
             facts.append(
-                f"Choice #{c_no}'s cutoff has been getting easier (closing rank numbers increasing)."
+                f"Choice #{c_no}'s last seat rank has been getting easier (rank numbers increasing)."
             )
         elif badge == TREND_VOLATILE:
             facts.append(
-                f"Choice #{c_no}'s cutoff has been volatile across recent counselling cycles."
+                f"Choice #{c_no}'s last seat rank has bounced up and down across recent cycles."
             )
 
     # 4. Mandatory Decision Support Line
@@ -306,11 +311,11 @@ def render_svg_circular_gauge(
     pct_text = f"{prob * 100.0:.0f}%"
 
     stroke_color = (
-        "#EF4444"
-        if tier_label == "Dream"
-        else "#F59E0B"
-        if tier_label == "Target"
-        else "#22C55E"
+        "#D97706"
+        if tier_label in ["Dream", "Reach"]
+        else "#16A34A"
+        if tier_label in ["Safe", "Likely"]
+        else "#2563EB"
     )
 
     radius = 36

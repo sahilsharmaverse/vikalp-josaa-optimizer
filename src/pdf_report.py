@@ -474,7 +474,7 @@ def build_pdf_report(
             textColor=colors.HexColor("#991B1B"),
         )
         warning_table = Table(
-            [[Paragraph("⚠️ WARNING: Your list has few or no safe options. Add more branches, institute types or states so you have a fallback.", style_safe_warning)]],
+            [[Paragraph("⚠️ NOTE: Your list has few or no safe options right now. Consider adding more branches or college systems so you have a strong safety net.", style_safe_warning)]],
             colWidths=[540],
         )
         warning_table.setStyle(
@@ -539,12 +539,12 @@ def build_pdf_report(
     table_data = [
         [
             Paragraph("<b>#</b>", style_tbl_header),
-            Paragraph("<b>Institute</b>", style_tbl_header),
+            Paragraph("<b>College</b>", style_tbl_header),
             Paragraph("<b>Academic Program</b>", style_tbl_header),
-            Paragraph("<b>Quota / Seat</b>", style_tbl_header),
-            Paragraph("<b>Admit %</b>", style_tbl_header),
-            Paragraph("<b>Tier</b>", style_tbl_header),
-            Paragraph("<b>Pred. Cutoff (80% Range)</b>", style_tbl_header),
+            Paragraph("<b>Seat Type</b>", style_tbl_header),
+            Paragraph("<b>Odds</b>", style_tbl_header),
+            Paragraph("<b>Category</b>", style_tbl_header),
+            Paragraph("<b>Last Seat (80% Range)</b>", style_tbl_header),
             Paragraph("<b>Trend</b>", style_tbl_header),
         ]
     ]
@@ -607,18 +607,23 @@ def build_pdf_report(
         elif "trend" in r:
             trend_badge = str(r["trend"])
 
-        # Light tier fill formatting
-        if tier_lbl == "Dream":
+        # Category formatting (Reach, Good fit, Likely)
+        tier_display = (
+            "Reach" if tier_lbl in ["Dream", "Reach"]
+            else "Likely" if tier_lbl in ["Safe", "Likely"]
+            else "Good fit"
+        )
+        if tier_display == "Reach":
             fill_col = TIER_FILL_DREAM
             text_col = "#991B1B"
-        elif tier_lbl == "Safe":
+        elif tier_display == "Likely":
             fill_col = TIER_FILL_SAFE
             text_col = "#166534"
         else:
             fill_col = TIER_FILL_TARGET
             text_col = "#92400E"
 
-        tier_cell_html = f"<font color='{text_col}'><b>{safe_escape(tier_lbl)}</b></font>"
+        tier_cell_html = f"<font color='{text_col}'><b>{safe_escape(tier_display)}</b></font>"
 
         # Alternating row background
         bg_col = COLOR_WHITE if row_idx % 2 != 0 else COLOR_LIGHT_BG
@@ -674,27 +679,27 @@ def build_pdf_report(
     )
     story.append(Spacer(1, 10))
 
-    # Subsection A: How to read Dream / Target / Safe
-    story.append(Paragraph("1. How to Read Risk Tiers", style_section_h2))
+    # Subsection A: How to read Reach / Good fit / Likely
+    story.append(Paragraph("1. Understanding Choice Categories", style_section_h2))
     guide_data = [
         [
-            Paragraph("<b>Dream</b><br/>(5% &le; P &lt; 30%)", style_tbl_cell_bold),
+            Paragraph("<b>Reach</b><br/>(5% to 30% odds)", style_tbl_cell_bold),
             Paragraph(
-                "Aspirational, highly selective branches or institutes (5% &le; P &lt; 30%). Low allotment probability, but zero penalty for placing them at the top. Options below 5% are excluded to ensure list quality. Never omit them, but do not rely on them for your seat.",
+                "Ambitious, selective choices (5% to 30% odds). Lower probability, but zero penalty for placing them at the top of your list. Choices below 5% are excluded to keep your list realistic.",
                 style_body,
             ),
         ],
         [
-            Paragraph("<b>Target</b><br/>(30% &le; P &lt; 80%)", style_tbl_cell_bold),
+            Paragraph("<b>Good fit</b><br/>(30% to 80% odds)", style_tbl_cell_bold),
             Paragraph(
-                "Competitive zone tightly calibrated around your rank. These represent realistic matches where the majority of allotments occur across past counselling rounds.",
+                "Competitive choices where your rank aligns well with recent cutoffs. These represent realistic matches where most allotments happen.",
                 style_body,
             ),
         ],
         [
-            Paragraph("<b>Safe</b><br/>(P &ge; 80%)", style_tbl_cell_bold),
+            Paragraph("<b>Likely</b><br/>(80%+ odds)", style_tbl_cell_bold),
             Paragraph(
-                "High-certainty safety anchors where previous closing cutoffs were comfortably relaxed. Essential towards the bottom of your list to guarantee you never exit counselling without an allotment.",
+                "High-confidence choices where past cutoffs were comfortably relaxed. Essential towards the bottom of your list so you have a solid safety net.",
                 style_body,
             ),
         ],
@@ -720,12 +725,12 @@ def build_pdf_report(
 
     # Subsection B: How probability is computed in 3 plain lines
     story.append(
-        Paragraph("2. How Admission Probability is Computed", style_section_h2)
+        Paragraph("2. How Admission Odds Are Estimated", style_section_h2)
     )
     prob_lines = (
-        "• <b>Line 1 (Expected Cutoff):</b> The expected closing rank (ŷ) for the upcoming cycle is predicted from past 5-year JoSAA closing ranks using weighted exponential trend regression.<br/>"
-        "• <b>Line 2 (Uncertainty Quantification):</b> Annual fluctuations in applicant choices and seat matrix capacity are modeled with residual standard error σ read from calibrated validation metrics.<br/>"
-        "• <b>Line 3 (Statistical Probability):</b> Individual admission chances are calculated as P(admit) = 1 − Φ((ln(rank) − ŷ) / σ), representing the cumulative normal probability of your rank meeting or beating the closing rank."
+        "• <b>Line 1 (Expected Last Seat):</b> The expected last seat rank is estimated from past 5-year counselling records using recent cutoff trends.<br/>"
+        "• <b>Line 2 (Cutoff Variations):</b> Year-to-year shifts in student choices and seat counts are modeled to compute realistic prediction ranges.<br/>"
+        "• <b>Line 3 (Estimated Odds):</b> Your admission odds are estimated by comparing your rank against past cutoffs and typical cutoff variations."
     )
     story.append(Paragraph(prob_lines, style_body))
     story.append(Spacer(1, 8))

@@ -23,11 +23,11 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 APP_URL = "http://localhost:8501"
 
 TABS = [
-    ("Your Profile", "tab1_profile"),
-    ("Your Plan", "tab2_plan"),
-    ("What-If", "tab3_whatif"),
-    ("Compare", "tab4_compare"),
-    ("How It Works & Trust", "tab5_trust"),
+    ("1. Tell us your rank", "tab1_start"),
+    ("2. Your list", "tab2_list"),
+    ("3. Try a different rank", "tab3_whatif"),
+    ("4. Compare choices", "tab4_compare"),
+    ("5. How we got this", "tab5_method"),
 ]
 
 
